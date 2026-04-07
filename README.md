@@ -46,11 +46,13 @@
 
 CicloAI es una solución basada en inteligencia artificial diseñada para automatizar el proceso de inscripción de ciclistas en competencias en Santa Cruz de la Sierra, Bolivia. Actualmente, los procesos de inscripción son manuales, propensos a errores, lentos y difíciles de auditar, especialmente cuando se manejan grandes volúmenes de participantes mediante formularios o archivos Excel. Esta situación genera inconsistencias en los datos, validaciones incorrectas y una carga operativa significativa para los organizadores.
 
-La propuesta introduce un agente conversacional basado en modelos de lenguaje (LLM) capaz de guiar al usuario paso a paso durante la inscripción, validar datos en tiempo real, procesar archivos Excel y analizar comprobantes de pago mediante OCR. Esto permite automatizar completamente el flujo de inscripción, reducir significativamente la intervención manual y mejorar la experiencia del usuario.
+La propuesta introduce un agente conversacional basado en modelos de lenguaje (LLM) que guía al usuario de forma estructurada desde el inicio del proceso de inscripción. El flujo inicia con una validación obligatoria de humanidad (anti-bots) y verificación de correo electrónico, asegurando que las interacciones provienen de usuarios reales. Posteriormente, el agente consulta y presenta las competencias disponibles, ofreciendo tres caminos principales: inscripción por primera vez, búsqueda de usuario existente o inscripción masiva mediante archivo Excel.
 
-Desde el punto de vista arquitectónico, el sistema se implementa mediante una API REST desacoplada, un motor de orquestación LLM, procesamiento de documentos y almacenamiento en la nube, asegurando escalabilidad, seguridad y alta disponibilidad. Además, incorpora un pipeline RAG para contextualizar respuestas con reglas de negocio y normativa de competencias.
+El sistema permite la recolección de datos personales, validación en tiempo real, procesamiento de archivos Excel, y análisis de comprobantes de pago mediante OCR. Además, integra un mecanismo de validación de pagos contra montos esperados y número de participantes, así como el envío automático de correos de verificación al finalizar cada flujo.
 
-Los resultados esperados incluyen una reducción de más del 70% en tiempos operativos, una disminución superior al 80% en errores de registro y una mejora sustancial en la trazabilidad del proceso. El sistema está diseñado para operar en español y preparado para futuras extensiones.
+Desde el punto de vista arquitectónico, el sistema se implementa mediante una API REST desacoplada, un motor de orquestación basado en LLM que actúa como agente central del flujo, procesamiento de documentos y almacenamiento en la nube, asegurando escalabilidad, seguridad y alta disponibilidad. Asimismo, incorpora un pipeline RAG para contextualizar respuestas con reglas de negocio, categorías de competencia y validaciones específicas del dominio.
+
+Los resultados esperados incluyen una reducción de más del 70% en tiempos operativos, una disminución superior al 80% en errores de registro, una mejora significativa en la validación de pagos y una mayor trazabilidad del proceso. El sistema está diseñado para operar en español y preparado para futuras extensiones.
 
 ---
 
@@ -58,9 +60,15 @@ Los resultados esperados incluyen una reducción de más del 70% en tiempos oper
 
 El problema principal radica en la gestión manual de inscripciones a competencias deportivas, lo cual genera errores en datos, inconsistencias en equipos, validaciones incorrectas de pagos y una alta carga operativa para los organizadores. En eventos con más de 100 participantes, estos problemas pueden traducirse en retrasos, conflictos y pérdida de confianza por parte de los competidores.
 
-CicloAI propone una solución basada en inteligencia artificial que automatiza completamente este proceso. Mediante un agente conversacional, el sistema interactúa de forma natural con los usuarios, recolecta información, valida reglas de negocio y procesa documentos automáticamente. La incorporación de OCR permite validar comprobantes de pago sin intervención manual inicial, mientras que el uso de RAG garantiza respuestas contextualizadas y precisas basadas en reglas del dominio.
+Adicionalmente, los procesos actuales carecen de mecanismos robustos de validación de usuarios (anti-bots), verificación de identidad básica (correo electrónico) y control automatizado de pagos en función del número de inscritos, lo que incrementa el riesgo de fraude o inconsistencias financieras.
 
-Esta solución es óptima frente a enfoques tradicionales porque combina automatización, inteligencia contextual y escalabilidad. Permite reducir costos operativos, mejorar la precisión de los datos y ofrecer una experiencia de usuario moderna y eficiente.
+CicloAI propone una solución basada en inteligencia artificial que automatiza completamente este proceso mediante un agente conversacional que orquesta el flujo de inscripción. El sistema valida desde el inicio que el usuario sea humano y cuente con un correo válido, luego guía al usuario a través de diferentes caminos según su necesidad: registro nuevo, reutilización de datos existentes o inscripción masiva.
+
+Mediante este enfoque, el sistema recolecta información, valida reglas de negocio, controla la coherencia de datos (como equipos y categorías), y procesa documentos automáticamente. La incorporación de OCR permite validar comprobantes de pago sin intervención manual inicial, mientras que el sistema también valida que el monto pagado corresponda correctamente al número de participantes registrados.
+
+El uso de RAG garantiza respuestas contextualizadas y precisas basadas en reglas del dominio, competencias habilitadas y criterios de validación.
+
+Esta solución es óptima frente a enfoques tradicionales porque combina automatización, validación inteligente, control de fraude y escalabilidad. Permite reducir costos operativos, mejorar la precisión de los datos, asegurar la integridad del proceso y ofrecer una experiencia de usuario moderna y guiada.
 
 ---
 
@@ -68,13 +76,16 @@ Esta solución es óptima frente a enfoques tradicionales porque combina automat
 
 | ✅ EN SCOPE | ❌ OUT OF SCOPE |
 |------------|----------------|
-| Interfaz conversacional con LLM para registro de usuarios | Entrenamiento de modelos desde cero (fine-tuning) |
-| Procesamiento y validación de archivos Excel | Integración con sistemas bancarios externos |
-| Validación de comprobantes de pago mediante OCR | Soporte multi-idioma (solo español) |
-| Despliegue en entorno cloud (AWS/GCP) | Aplicaciones móviles nativas |
-| Dashboard administrativo para aprobación/rechazo | Integración con sistemas externos |
-
----
+| Validación de usuario humano (anti-bots) y verificación de email al inicio del flujo | Entrenamiento de modelos desde cero (fine-tuning) |
+| Interfaz conversacional con LLM para guiar el flujo completo de inscripción | Integración con sistemas bancarios externos |
+| Inscripción individual (nuevo usuario) con validación de datos y pago | Soporte multi-idioma (solo español) |
+| Búsqueda de usuarios previamente registrados y reutilización de datos | Aplicaciones móviles nativas |
+| Inscripción masiva mediante carga de archivos Excel | Integración con sistemas externos |
+| Validación de comprobantes de pago mediante OCR | |
+| Validación automática de montos de pago según número de inscritos | |
+| Envío de correos de verificación al finalizar el proceso | |
+| Despliegue en entorno cloud (AWS/GCP) | |
+| Dashboard administrativo para aprobación/rechazo (HITL) | |
 
 ### 1.3 Indicadores Clave de Éxito (KPIs del Proyecto)
 
@@ -87,7 +98,6 @@ Esta solución es óptima frente a enfoques tradicionales porque combina automat
 | Precisión OCR | N/A | > 85% | *[Completar al final]* |
 
 ---
-
 ## 2. Análisis y Especificación de Requerimientos
 
 ### 2.1 Contexto del Caso de Uso Empresarial
@@ -96,7 +106,22 @@ El sistema CicloAI se enmarca en el sector de eventos deportivos, específicamen
 
 Los actores involucrados son: ciclistas (usuarios finales), organizadores del evento y administradores del sistema. Los usuarios utilizan el sistema principalmente durante periodos de inscripción, con una frecuencia intensiva en ventanas cortas de tiempo (picos de uso). Se estima un volumen de entre 100 y 500 inscripciones por evento.
 
-El flujo propuesto (TO-BE) automatiza el proceso mediante un agente conversacional basado en LLM, que guía al usuario, valida datos en tiempo real, procesa archivos Excel y verifica comprobantes de pago mediante OCR. El sistema centraliza la información, aplica reglas de negocio automáticamente y reduce la carga operativa del administrador, quien solo interviene en la aprobación final.
+El flujo propuesto (TO-BE) automatiza el proceso mediante un agente conversacional basado en LLM que actúa como orquestador central del sistema. El flujo inicia con una validación obligatoria de humanidad (anti-bots) y verificación de correo electrónico, garantizando que solo usuarios reales puedan iniciar el proceso.
+
+Posteriormente, el agente consulta las competencias habilitadas y guía al usuario a través de tres caminos principales:
+1. Inscripción por primera vez
+2. Búsqueda de usuario existente
+3. Inscripción masiva mediante archivo Excel
+
+El sistema realiza validaciones en múltiples capas:
+- Validación inicial (humano + email)
+- Validaciones de datos en tiempo real
+- Validaciones de reglas de negocio (categorías, equipos)
+- Validación de pagos (monto vs número de inscritos)
+
+El procesamiento de comprobantes de pago se realiza mediante OCR, y el sistema verifica automáticamente la consistencia del monto pagado. Además, se envían correos de verificación como cierre del flujo, garantizando trazabilidad.
+
+El administrador interviene únicamente en casos excepcionales o procesos de revisión, reduciendo significativamente la carga operativa.
 
 ---
 
@@ -113,6 +138,15 @@ El flujo propuesto (TO-BE) automatiza el proceso mediante un agente conversacion
 | RF-007 | El sistema debe procesar comprobantes de pago mediante OCR. | Alta | Extracción correcta de datos en > 85% de casos |
 | RF-008 | El sistema debe enviar notificaciones por correo al administrador para aprobación. | Media | Email enviado en < 10 segundos |
 | RF-009 | El sistema debe proveer un dashboard para aprobación/rechazo de inscripciones. | Alta | Visualización y acción en tiempo real |
+| RF-010 | El sistema debe validar que el usuario es humano antes de iniciar el flujo (CAPTCHA o mecanismo equivalente). | Alta | Validación exitosa en > 95% de intentos |
+| RF-011 | El sistema debe requerir y validar un correo electrónico antes de iniciar el proceso de inscripción. | Alta | Email válido verificado antes de continuar |
+| RF-012 | El sistema debe permitir la selección guiada de competencias disponibles. | Alta | Listado correcto de eventos habilitados |
+| RF-013 | El sistema debe permitir la búsqueda de usuarios previamente registrados por nombre. | Alta | Recuperación correcta en > 90% |
+| RF-014 | El sistema debe permitir reutilizar datos de usuarios existentes con edición limitada (equipo). | Alta | Edición restringida correctamente aplicada |
+| RF-015 | El sistema debe validar que el monto del pago corresponda al número de participantes inscritos. | Alta | Validación correcta en > 95% |
+| RF-016 | El sistema debe generar y mostrar un medio de pago (QR) al usuario. | Alta | QR generado correctamente en < 2s |
+| RF-017 | El sistema debe enviar un correo de confirmación al finalizar el flujo de inscripción. | Alta | Email enviado correctamente en < 10s |
+| RF-018 | El sistema debe validar que los participantes del Excel pertenezcan a categorías válidas. | Alta | Rechazo automático si hay inconsistencias |
 
 ---
 
@@ -132,6 +166,9 @@ El flujo propuesto (TO-BE) automatiza el proceso mediante un agente conversacion
 | RNF-010 | Mantenibilidad | Facilidad de evolución del sistema | Arquitectura modular desacoplada |
 | RNF-011 | Portabilidad | Despliegue en entornos cloud | Compatible con AWS/GCP |
 | RNF-012 | Tiempo de procesamiento batch | Procesamiento de archivos Excel | ≤ 5 segundos para 100 registros |
+| RNF-013 | Seguridad | Prevención de bots mediante validación de humanidad (CAPTCHA o equivalente) | > 95% efectividad |
+| RNF-014 | Integridad de pagos | Validación automática de consistencia entre monto pagado y número de inscritos | > 95% precisión |
+| RNF-015 | Confiabilidad del flujo | Garantizar finalización completa del flujo con confirmación por email | > 98% éxito |
 
 ---
 
@@ -139,10 +176,406 @@ El flujo propuesto (TO-BE) automatiza el proceso mediante un agente conversacion
 
 | Restricciones | Supuestos |
 |--------------|-----------|
-| Presupuesto cloud máximo: USD $50/mes(revisar) | Los usuarios tienen acceso a internet estable |
-| No integración con sistemas bancarios en esta versión | El modelo LLM está disponible vía API |
+| Presupuesto cloud máximo: USD $50/mes (revisar) | Los usuarios tienen acceso a internet estable |
+| No integración con sistemas bancarios en esta versión (solo validación por comprobante) | El modelo LLM está disponible vía API |
 | Sistema operará únicamente en idioma español | Los usuarios proporcionan datos correctos |
 | No se permite almacenamiento de datos sensibles en logs | Existencia de datos de prueba para validación |
-| Dependencia de servicios externos (LLM, OCR) | Disponibilidad continua de servicios cloud |
+| Dependencia de servicios externos (LLM, OCR, CAPTCHA) | Disponibilidad continua de servicios cloud |
+| Validación de pagos basada en OCR, no en confirmación bancaria directa | Los comprobantes de pago son legibles y contienen información relevante |
+
+## 3. Diseño de Arquitectura AI/LLM
+
+### 3.1 Diagrama de Arquitectura General (Nivel C4 — Contexto y Contenedor)
+
+> 📌 **Descripción:** El siguiente diagrama representa la arquitectura de alto nivel del sistema CicloAI bajo el modelo C4 (Contexto y Contenedores). Se incluyen los actores principales, la capa de API, el orquestador LLM, servicios de validación (CAPTCHA, reglas de negocio), procesamiento OCR, almacenamiento de datos y componentes cloud.
+
+![Diagrama de Arquitectura CicloAI](img/cicloai-architecture.drawio.png)
+
+**Figura 1. Diagrama de Arquitectura General — CicloAI v0.2**
 
 ---
+
+### 3.2 Descripción de Componentes Arquitectónicos
+
+| Componente | Tecnología / Servicio | Responsabilidad Principal | Justificación de Selección |
+|------------|----------------------|--------------------------|---------------------------|
+| API Gateway | FastAPI + Nginx | Exposición de endpoints, routing, rate limiting |Ligero, rápido, ideal para microservicios
+| Orquestador LLM | LangChain | Manejo de prompts, RAG, chains | Ecosistema maduro, integración nativa con LLMs |
+| Modelo LLM Base | GPT-4o  | Procesamiento de lenguaje, interpretación de formularios | Alta precisión, multimodal (clave para OCR + texto) |
+| Vector Store |  ChromaDB  | Búsqueda semántica para RAG | Open source, fácil integración local |
+| Capa de Datos | PostgreSQL | Persistencia de metadata | Escalable  estándar en backend
+| Observabilidad | Prometheus + Grafana | Monitore y metricas | Open source y robusto |
+| Seguridad / IAM | Okta | Autenticación y autorización | Integración enterprise |
+| OCR Service | Tesseract / AWS Textract | Extraccion de text de documentos| Necesario para inscripciones, verificacion de pagos por comprobantes
+
+### 3.3 Diagrama de Flujo de Datos e Integración
+
+#### 3.3.1 Flujo General + Decisión Inicial
+![Diagrama Flujo General CicloAI](img/3.3.1.diagrama-flujo-general.png)
+*Figura 2. Flujo de Datos General + Decisión Inicial — CicloAI*
+
+
+#### 3.3.2 Flujo Nuevo Usuario (Primer Carrera)
+![Diagrama Flujo Nuevo Usuario - CicloAI](img/3.3.2.diagrama-flujo-nuevo-usuario.png)
+*Figura 3. Flujo Nuevo Usuario (Primer Carrera) — CicloAI*
+
+#### 3.3.3 Flujo Usuario Existente
+![Diagrama Flujo Usuario Existente - CicloAI](img/3.3.3.diagrama-flujo-usuario-existente.png)
+*Figura 4. Flujo Usuario Existente  — CicloAI*
+
+#### 3.3.4 Flujo Inscripción Masiva
+![Diagrama Flujo Inscripción Masiva - CicloAI](img/3.3.4.diagrama-flujo-inscripcion-masiva.png)
+*Figura 5. Flujo Usuario Existente  — CicloAI*
+
+#### 3.3.5 Flujo State Machine
+![Diagrama Flujo State Machine - CicloAI](img/3.3.5.diagrama-flujo-state-machine.png)
+*Figura 6. Flujo State Machine  — CicloAI*
+
+
+### 3.4 Estrategia de Diseño de Prompts y RAG
+
+**System Prompt Base:**
+
+*Documente el system prompt que guía el comportamiento del modelo. Incluya: rol, restricciones, formato de respuesta esperado, y manejo de casos fuera de alcance.*
+
+```
+Eres un asistente experto en gestión de inscripciones a competencias de ciclismo.
+
+Tu función es analizar requisitos, validar documentos y asistir en el proceso de registro.
+
+RESTRICCIONES:
+- Solo responde en base al contexto proporcionado.
+- Si no tienes información suficiente, responde: "No tengo información sobre eso."
+- No inventes datos.
+- No generes contenido fuera del dominio de ciclismo o inscripciones.
+
+FORMATO DE RESPUESTA:
+{
+  "status": "ok | error",
+  "analysis": "...",
+  "required_documents": [],
+  "recommendations": []
+} 
+```
+
+## 3.4 Arquitectura física (equivalencias por nube)
+
+| Capa | AWS | GCP | Azure |
+|---|---|---|---|
+| Ingesta | Lambda / API Gateway | Cloud Functions / Cloud Run | Azure Functions |
+| Raw (Bronze) | S3 (raw docs) | GCS | ADLS Gen2 |
+| Transform | Glue / Lambda | Dataflow | Synapse / Databricks |
+| Curated (Silver) | S3 (cleaned JSON / text) | GCS | ADLS |
+| Serving (Gold) | RDS / Aurora + pgvector | BigQuery | Synapse SQL |
+| Vector Layer | OpenSearch / pgvector / Pinecone | Vertex AI Vector Search | Azure AI Search |
+| Orquestación | Step Functions | Workflows | ADF |
+| Observabilidad | CloudWatch + X-Ray | Cloud Monitoring | Azure Monitor |
+
+---
+
+## Estrategia de Recuperación (RAG)
+
+### Tipo de chunking
+Hybrid chunking (semántico + tamaño fijo)
+
+**Justificación:**
+Permite preservar contexto semántico en documentos no estructurados (formularios, reglas de competencia) mientras mantiene control sobre el tamaño de entrada al modelo.
+
+---
+
+### Tamaño de chunks
+500 tokens
+
+**Justificación:**
+Balance adecuado entre contexto suficiente y precisión en la recuperación.
+
+---
+
+### Overlap
+100 tokens
+
+**Justificación:**
+Evita pérdida de contexto entre segmentos consecutivos.
+
+---
+
+### Modelo de embeddings
+text-embedding-3-small (OpenAI)
+
+**Alternativa:**
+all-MiniLM-L6-v2 (open source)
+
+**Justificación:**
+Buen balance entre costo, rendimiento y facilidad de integración.
+
+---
+
+### Función de similitud
+Cosine similarity
+
+**Justificación:**
+Estándar en NLP, eficiente y compatible con embeddings normalizados.
+
+---
+
+### Top-K
+5
+
+**Justificación:**
+Reduce ruido manteniendo suficiente contexto relevante.
+
+---
+
+### Threshold
+0.75
+
+**Justificación:**
+Filtra resultados de baja relevancia, mejorando la precisión del sistema.
+
+---
+
+### Re-ranking
+Sí — Cross-encoder re-ranking
+
+**Implementación:**
+- Modelo sugerido: bge-reranker-base
+- Flujo:
+  1. Recuperación inicial top-10
+  2. Re-ranking
+  3. Selección final top-3
+
+**Beneficios:**
+- Mejora precisión
+- Reduce alucinaciones
+- Mejora relevancia del contexto enviado al LLM
+
+---
+
+### Pipeline RAG completo
+
+1. Usuario envía query
+2. Se genera embedding del query
+3. Se consulta vector store
+4. Se recuperan documentos (top-k)
+5. Se aplica re-ranking
+6. Se construye prompt:
+   - system prompt
+   - contexto relevante
+   - query del usuario
+7. Se envía al LLM
+8. Se genera respuesta final
+
+---
+
+### Resumen ejecutivo
+
+Se implementa un enfoque RAG híbrido con chunking semántico y tamaño fijo (500 tokens, overlap 100). Se utiliza el modelo de embeddings text-embedding-3-small con similitud coseno. Se recuperan los top-5 documentos relevantes con un threshold de 0.75.
+
+Se incorpora una capa de re-ranking mediante cross-encoder, donde inicialmente se recuperan 10 documentos y se seleccionan los 3 más relevantes antes de enviar el contexto al LLM.
+
+Este enfoque mejora la precisión, reduce alucinaciones y permite actualización dinámica de la base de conocimiento sin necesidad de fine-tuning.---
+
+
+## 4. Diseño de APIs y Conectores
+
+### 4.1 Especificación de Endpoints (API REST)
+
+*Los endpoints siguen convenciones REST: recursos claros, versionado `/v1`, y uso de métodos HTTP para acciones.*
+
+| Endpoint | Método | Descripción | Request Body / Params | Response Schema |
+|----------|--------|-------------|----------------------|-----------------|
+| `/api/v1/health` | GET | Health check del sistema | N/A | `{"status": "healthy\|degraded", "components": object}` |
+
+### 🔐 Seguridad y Validación Inicial
+
+| Endpoint | Método | Descripción | Request | Response |
+|----------|--------|-------------|--------|----------|
+| `/api/v1/security/captcha/verify` | POST | Validar que el usuario es humano | `{ "captcha_token": string }` | `{ "valid": boolean }` |
+| `/api/v1/security/email/verify` | POST | Validar formato y existencia de email | `{ "email": string }` | `{ "valid": boolean }` |
+
+---
+
+### 👤 Autenticación
+
+| Endpoint | Método | Descripción | Request Body / Params | Response Schema |
+|----------|--------|-------------|----------------------|-----------------|
+| `/api/v1/auth/login` | POST | Autenticación del usuario (via SSO / credenciales) | `{"email": string, "password": string}` | `{"access_token": string, "expires_in": int}` |
+
+---
+
+### 🏁 Gestión de Carreras
+
+| Endpoint | Método | Descripción | Request | Response |
+|----------|--------|-------------|--------|----------|
+| `/api/v1/events` | GET | Obtener carreras habilitadas | N/A | `[{ "event_id": string, "name": string }]` |
+
+---
+
+### 🤖 Agente / Orquestación
+
+| Endpoint | Método | Descripción | Request | Response |
+|----------|--------|-------------|--------|----------|
+| `/api/v1/agent/start` | POST | Inicia flujo conversacional validado | `{ "email": string }` | `{ "session_id": string }` |
+| `/api/v1/agent/next-step` | POST | Avanza en el flujo según decisión del usuario | `{ "session_id": string, "input": object }` | `{ "next_action": string, "data": object }` |
+
+---
+
+### 👤 Usuarios
+
+| Endpoint | Método | Descripción | Request | Response |
+|----------|--------|-------------|--------|----------|
+| `/api/v1/users/search` | GET | Buscar usuario por nombre | `query: name` | `{ "found": boolean, "user": object }` |
+
+---
+
+### 📝 Inscripciones
+
+| Endpoint | Método | Descripción | Request Body / Params | Response Schema |
+|----------|--------|-------------|----------------------|-----------------|
+| `/api/v1/inscriptions` | POST | Crear solicitud de inscripción | `{"user_data": object, "event_id": string}` | `{"inscription_id": string, "status": "pending"}` |
+| `/api/v1/inscriptions/{id}` | GET | Obtener estado de inscripción | `path: id` | `{"status": string, "details": object}` |
+
+---
+
+### 📄 Documentos
+
+| Endpoint | Método | Descripción | Request | Response |
+|----------|--------|-------------|--------|----------|
+| `/api/v1/documents/excel` | POST | Cargar archivo Excel | `multipart/form-data (file)` | `{"status": "uploaded", "rows_processed": int}` |
+| `/api/v1/documents/payment-image` | POST | Cargar comprobante de pago | `multipart/form-data (image)` | `{"status": "uploaded", "file_id": string}` |
+
+---
+
+### 💰 Pagos
+
+| Endpoint | Método | Descripción | Request | Response |
+|----------|--------|-------------|--------|----------|
+| `/api/v1/payments/qr` | GET | Generar QR de pago | `amount` | `{ "qr_code": base64 }` |
+| `/api/v1/payments/analyze` | POST | Analizar comprobante con OCR | `{ "file_id": string }` | `{ "status": "validated\|rejected", "amount": float }` |
+| `/api/v1/payments/validate` | POST | Validar monto vs inscritos | `{ "amount": float, "participants": int }` | `{ "valid": boolean }` |
+
+---
+
+### 🧠 Procesamiento IA
+
+| Endpoint | Método | Descripción | Request | Response |
+|----------|--------|-------------|--------|----------|
+| `/api/v1/inscriptions/{id}/process` | POST | Ejecutar validaciones + IA (RAG + LLM) | `{ "inscription_id": string }` | `{ "status": "approved\|review\|rejected" }` |
+
+---
+
+### 🧑‍⚖️ HITL (Human-in-the-Loop)
+
+| Endpoint | Método | Descripción | Request | Response |
+|----------|--------|-------------|--------|----------|
+| `/api/v1/admin/review-queue` | GET | Casos pendientes | N/A | `[object]` |
+| `/api/v1/admin/inscriptions/{id}/approve` | POST | Aprobación manual | `{ "admin_id": string }` | `{ "status": "approved" }` |
+| `/api/v1/admin/inscriptions/{id}/reject` | POST | Rechazo manual | `{ "admin_id": string, "reason": string }` | `{ "status": "rejected" }` |
+
+---
+
+### 📧 Notificaciones
+
+| Endpoint | Método | Descripción | Request | Response |
+|----------|--------|-------------|--------|----------|
+| `/api/v1/notifications/email` | POST | Enviar correo de confirmación | `{ "email": string }` | `{ "status": "sent" }` |
+
+---
+
+## 4.2 Autenticación y Autorización
+
+| Campo | Descripción |
+|-------|-------------|
+| **Mecanismo Auth** | JWT Bearer Token con OAuth 2.0 |
+| **Proveedor de Identidad** | Okta |
+| **Gestión de Secrets** | AWS Secrets Manager |
+| **Rate Limiting** | 100 req/min por usuario, 1000 req/min global |
+| **Roles definidos** | `user`, `admin`, `system` |
+
+---
+
+## 4.3 Modelo de Roles (RBAC)
+
+| Rol | Permisos |
+|-----|---------|
+| **user** | Iniciar flujo, inscribirse, subir documentos, consultar estado |
+| **admin** | Aprobar/rechazar inscripciones, revisar pagos |
+| **system** | Orquestación IA, OCR, validaciones, notificaciones |
+
+---
+
+## 4.4 Flujo principal del sistema (end-to-end)
+
+1. Usuario accede al sistema  
+2. Validación CAPTCHA (`/security/captcha/verify`)  
+3. Validación email (`/security/email/verify`)  
+4. Inicio de flujo (`/agent/start`)  
+5. Consulta de carreras (`/events`)  
+6. Usuario selecciona tipo de inscripción  
+7. Flujo guiado por agente (`/agent/next-step`)  
+8. Creación inscripción (`/inscriptions`)  
+9. Upload documentos (`/documents/...`)  
+10. Generación QR (`/payments/qr`)  
+11. OCR (`/payments/analyze`)  
+12. Validación monto (`/payments/validate`)  
+13. Procesamiento IA (`/inscriptions/{id}/process`)  
+14. Decisión:
+   - Aprobado automático  
+   - Escalado a HITL  
+15. Revisión admin (`/admin/...`)  
+16. Notificación (`/notifications/email`)  
+
+---
+
+## 4.5 Flujo principal del sistema (end-to-end)
+
+### Flujo Masivo (Excel)
+
+1. CAPTCHA  
+2. Validación email  
+3. Selección opción masiva  
+4. Upload Excel  
+5. Validación datos y categorías  
+6. Generación QR  
+7. OCR pago  
+8. Validación monto total  
+9. IA  
+10. HITL si aplica  
+11. Notificación  
+
+---
+
+## 4.6 Flujo principal del sistema (end-to-end)
+
+### Flujo Individual
+
+1. CAPTCHA  
+2. Validación email  
+3. Selección opción individual  
+4. Formulario datos  
+5. Generación QR  
+6. OCR pago  
+7. Validación monto  
+8. IA  
+9. HITL si aplica  
+10. Notificación  
+
+---
+
+## 4.7 Consideraciones de diseño
+
+- Versionado: `/api/v1/`
+- Arquitectura orientada a eventos (preparada para async)
+- Orquestación central mediante agente LLM
+- Validaciones desacopladas (seguridad, negocio, pagos)
+- Formato estándar: JSON
+
+### Manejo de errores
+
+```json
+{
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "Descripción del error"
+  }
+}
