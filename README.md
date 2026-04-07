@@ -231,6 +231,10 @@ El administrador interviene únicamente en casos excepcionales o procesos de rev
 ![Diagrama Flujo State Machine - CicloAI](img/3.3.5.diagrama-flujo-state-machine.png)
 *Figura 6. Flujo State Machine  — CicloAI*
 
+#### 3.3.5 Arquitectura
+![Diagrama Arquitectura - CicloAI](img/c4-diagram-cicloai.drawio.png)
+*Figura 7. Arquitectura — CicloAI*
+
 
 ### 3.4 Estrategia de Diseño de Prompts y RAG
 
