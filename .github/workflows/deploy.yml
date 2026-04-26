@@ -44,11 +44,11 @@ jobs:
         run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 
       - name: Build and push backend image
-        env:
-          IMAGE_URI: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPOSITORY }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
         run: |
-          docker build -t "${IMAGE_URI}" ./cicloai-backend
-          docker push "${IMAGE_URI}"
+          IMAGE_URI="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REGISTRY_REPOSITORY}/${BACKEND_IMAGE}:${{ github.sha }}"
+          echo "Subiendo a: $IMAGE_URI"
+          docker build -t "$IMAGE_URI" ./cicloai-backend
+          docker push "$IMAGE_URI"
 
       - name: Deploy backend to Cloud Run
         env:
