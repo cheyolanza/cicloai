@@ -42,6 +42,10 @@ class Settings:
     enable_ocr_mock: bool = True
     google_vision_ocr_endpoint: str = "https://vision.googleapis.com/v1/images:annotate"
     payment_proofs_storage_dir: Path = Path("assets/payments")
+    cors_allowed_origins: tuple[str, ...] = (
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    )
 
 
 def build_database_url() -> str:
@@ -75,6 +79,21 @@ def build_database_url() -> str:
     db_host = os.getenv("DB_HOST", "localhost")
     db_port = os.getenv("DB_PORT", "5432")
     return f"postgresql+psycopg2://{encoded_user}:{encoded_password}@{db_host}:{db_port}/{encoded_db_name}"
+
+
+def parse_cors_allowed_origins(raw_value: str | None) -> tuple[str, ...]:
+    """Parses comma-separated CORS origins from environment configuration.
+
+    CORS is deployment-specific: local development, Cloud Run preview URLs and
+    custom domains should be configured outside code. The fallback keeps the
+    developer experience working when no env var is provided.
+    """
+
+    if not raw_value:
+        return ("http://localhost:5173", "http://127.0.0.1:5173")
+
+    origins = tuple(origin.strip().rstrip("/") for origin in raw_value.split(",") if origin.strip())
+    return origins or ("http://localhost:5173", "http://127.0.0.1:5173")
 
 
 def get_settings() -> Settings:
@@ -118,4 +137,5 @@ def get_settings() -> Settings:
             "https://vision.googleapis.com/v1/images:annotate",
         ),
         payment_proofs_storage_dir=Path(os.getenv("PAYMENT_PROOFS_STORAGE_DIR", "assets/payments")),
+        cors_allowed_origins=parse_cors_allowed_origins(os.getenv("CORS_ALLOWED_ORIGINS")),
     )

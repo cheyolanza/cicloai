@@ -1,4 +1,4 @@
-from cicloai.infrastructure.config import build_database_url
+from cicloai.infrastructure.config import build_database_url, parse_cors_allowed_origins
 
 
 def test_build_database_url_prefers_explicit_database_url(monkeypatch) -> None:
@@ -31,3 +31,19 @@ def test_build_database_url_from_cloud_sql_socket(monkeypatch) -> None:
         "postgresql+psycopg2://cicloai_user:cloud-password@/cicloai"
         "?host=/cloudsql/ciclo-ai:us-central1:cicloai-postgres"
     )
+
+
+def test_parse_cors_allowed_origins_trims_and_normalizes_trailing_slashes() -> None:
+    origins = parse_cors_allowed_origins(
+        "http://localhost:5173, https://cicloai-frontend-674379443086.us-central1.run.app/, https://cicloai.com"
+    )
+
+    assert origins == (
+        "http://localhost:5173",
+        "https://cicloai-frontend-674379443086.us-central1.run.app",
+        "https://cicloai.com",
+    )
+
+
+def test_parse_cors_allowed_origins_uses_local_fallback() -> None:
+    assert parse_cors_allowed_origins("") == ("http://localhost:5173", "http://127.0.0.1:5173")
