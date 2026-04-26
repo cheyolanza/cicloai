@@ -27,11 +27,13 @@ COPY --from=builder /opt/venv /opt/venv
 COPY src ./src
 COPY data ./data
 COPY assets ./assets
+COPY scripts/start.sh ./scripts/start.sh
 COPY alembic ./alembic
 COPY alembic.ini .
 
 RUN mkdir -p /app/storage/vector_store /app/assets/payments \
-    && chown -R cicloai:cicloai /app/data /app/storage /app/assets/payments
+    && chmod +x /app/scripts/start.sh \
+    && chown -R cicloai:cicloai /app/data /app/storage /app/assets/payments /app/scripts/start.sh
 
 USER cicloai
 ENV PATH="/opt/venv/bin:$PATH"
@@ -41,4 +43,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read()"
 
-CMD ["uvicorn", "cicloai.interfaces.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/scripts/start.sh"]

@@ -6,6 +6,15 @@ from pathlib import Path
 from urllib.parse import quote_plus
 
 
+DEFAULT_CORS_ALLOWED_ORIGINS = (
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://cicloai-frontend-674379443086.us-central1.run.app",
+    "https://cicloai.com",
+    "https://www.cicloai.com",
+)
+
+
 @dataclass(frozen=True)
 class Settings:
     app_name: str = "CicloAI Backend"
@@ -42,10 +51,7 @@ class Settings:
     enable_ocr_mock: bool = True
     google_vision_ocr_endpoint: str = "https://vision.googleapis.com/v1/images:annotate"
     payment_proofs_storage_dir: Path = Path("assets/payments")
-    cors_allowed_origins: tuple[str, ...] = (
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    )
+    cors_allowed_origins: tuple[str, ...] = DEFAULT_CORS_ALLOWED_ORIGINS
 
 
 def build_database_url() -> str:
@@ -90,10 +96,10 @@ def parse_cors_allowed_origins(raw_value: str | None) -> tuple[str, ...]:
     """
 
     if not raw_value:
-        return ("http://localhost:5173", "http://127.0.0.1:5173")
+        return DEFAULT_CORS_ALLOWED_ORIGINS
 
     origins = tuple(origin.strip().rstrip("/") for origin in raw_value.split(",") if origin.strip())
-    return origins or ("http://localhost:5173", "http://127.0.0.1:5173")
+    return origins or DEFAULT_CORS_ALLOWED_ORIGINS
 
 
 def get_settings() -> Settings:

@@ -241,6 +241,20 @@ Ejecutar migración:
 docker compose exec backend alembic upgrade head
 ```
 
+El contenedor backend también ejecuta automáticamente al iniciar:
+
+```bash
+alembic upgrade head
+python -m cicloai.infrastructure.database.seed
+```
+
+Esto aplica cambios de esquema en cada despliegue Docker/Cloud Run antes de iniciar FastAPI. Puede desactivarse solo para casos especiales con:
+
+```env
+RUN_DB_MIGRATIONS=false
+RUN_DB_SEED=false
+```
+
 ## Category Detection with RAG
 
 La detección de categoría usa `CategoryDetectionService` y `CategoryRulesRagService` sobre:

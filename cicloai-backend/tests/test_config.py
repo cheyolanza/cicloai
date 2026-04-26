@@ -46,4 +46,10 @@ def test_parse_cors_allowed_origins_trims_and_normalizes_trailing_slashes() -> N
 
 
 def test_parse_cors_allowed_origins_uses_local_fallback() -> None:
-    assert parse_cors_allowed_origins("") == ("http://localhost:5173", "http://127.0.0.1:5173")
+    assert parse_cors_allowed_origins("") == (
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://cicloai-frontend-674379443086.us-central1.run.app",
+        "https://cicloai.com",
+        "https://www.cicloai.com",
+    )

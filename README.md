@@ -741,6 +741,8 @@ Las variables se gestionan mediante archivos `.env` y `.env.example`. Las creden
 | `RAG_TOP_K` | Cantidad de chunks recuperados por RAG | Propuesto / configurable |
 | `RAG_SIMILARITY_THRESHOLD` | Umbral de similitud para recuperación | Propuesto / configurable |
 | `CATEGORY_RULES_PDF_PATH` | Ruta al archivo de reglas, actualmente `convocatoria.txt` | Implementado |
+| `RUN_DB_MIGRATIONS` | Ejecuta `alembic upgrade head` al iniciar el contenedor backend | Implementado |
+| `RUN_DB_SEED` | Ejecuta el seed idempotente al iniciar el contenedor backend | Implementado |
 
 Prioridad de configuración de base de datos:
 
@@ -778,6 +780,20 @@ docker compose exec backend python -m cicloai.infrastructure.database.seed
 docker compose exec backend python -m cicloai.rag.index_documents
 ```
 
+El contenedor backend ejecuta automáticamente antes de levantar FastAPI:
+
+```bash
+alembic upgrade head
+python -m cicloai.infrastructure.database.seed
+```
+
+Estas acciones se controlan con:
+
+```env
+RUN_DB_MIGRATIONS=true
+RUN_DB_SEED=true
+```
+
 ### 6.5 Pruebas y Cobertura
 
 El backend cuenta con pruebas unitarias iniciales usando `pytest`. La cobertura mínima requerida por CI es 75%.
@@ -813,10 +829,14 @@ ciclo-ai:us-central1:cicloai-postgres
 El backend recibe estas variables durante el despliegue:
 
 ```env
-DB_NAME=cicloai
+DB_NAME=cicloai-db
 DB_USER=cicloai_user
 CLOUD_SQL_INSTANCE_CONNECTION_NAME=ciclo-ai:us-central1:cicloai-postgres
+RUN_DB_MIGRATIONS=true
+RUN_DB_SEED=true
 ```
+
+Durante cada despliegue, el contenedor backend corre migraciones Alembic y seed idempotente antes de iniciar Uvicorn. Si una migración falla, el contenedor no inicia la API, evitando servir endpoints contra una base incompleta.
 
 La contraseña no se define en el código ni en el workflow. Debe existir como secreto en Google Secret Manager:
 
