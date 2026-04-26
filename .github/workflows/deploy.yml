@@ -64,7 +64,7 @@ jobs:
           CATEGORY_RULES_PDF_PATH: app/assets/documents/category_rules/convocatoria.txt
         run: |
           cd cicloai-backend
-          pytest --cov=app --cov-report=term-missing --cov-fail-under=75
+          pytest --cov=src/cicloai --cov-report=term-missing --cov-fail-under=75
 
   build-docker:
     name: Build Docker
