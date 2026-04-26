@@ -43,7 +43,7 @@ jobs:
           DB_NAME: test_db
           JWT_SECRET_KEY: test_secret_key
           OPENAI_API_KEY: sk_test_key
-          DATABASE_URL: sqlite:///:memory:
+          DATABASE_URL: sqlite:///:memory
         run: |
           cd cicloai-backend
           # Ejecuta pytest. Si falla, el despliegue se detiene.
