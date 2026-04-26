@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import date
 
 from cicloai.rag.category_rules_rag_service import CategoryDetectionPromptData, CategoryRulesRagService
@@ -43,6 +44,29 @@ FEDERATED_DETECTED_CATEGORIES.update(
 )
 
 ALLOWED_DETECTED_CATEGORIES = BASE_DETECTED_CATEGORIES | FEDERATED_DETECTED_CATEGORIES
+
+FULL_CATEGORY_ALIASES = {
+    "Sub 15 (Varones y Damas)": "Sub 15",
+    "Cadetes (Varones y Damas)": "Cadetes",
+    "Junior (Varones y Damas)": "Junior",
+    "Sub 23 (Varones)": "Sub 23",
+    "Elite (Varones y Damas)": "Elite",
+    "Federados Master A1 (Varones y Damas)": "Federado Master A1",
+    "Federados Master A2 (Varones y Damas)": "Federado Master A2",
+    "Federados Master B1 (Varones y Damas)": "Federado Master B1",
+    "Federados Master B2 (Varones y Damas)": "Federado Master B2",
+    "Federados Master C1 (Varones)": "Federado Master C1",
+    "Federados Master C2 (Varones)": "Federado Master C2",
+    "Federados Master C (Damas)": "Federado Master C",
+    "Federados Master D1 (Varones)": "Federado Master D1",
+    "Federados Master D2 (Varones)": "Federado Master D2",
+    "Aficionados o Novatos 1 (Varones y Damas)": "Aficionados o Novatos 1",
+    "Aficionados o Novatos 2 (Varones y Damas)": "Aficionados o Novatos 2",
+    "Aficionados o Novatos 3 (Varones y Damas)": "Aficionados o Novatos 3",
+    "Aficionados o Novatos 4 (Varones)": "Aficionados o Novatos 4",
+    "Cicloturista Varones": "Cicloturista Varones",
+    "Cicloturista Damas": "Cicloturista Damas",
+}
 
 
 class CategoryDetectionService:
@@ -99,11 +123,7 @@ class CategoryDetectionService:
         if not response:
             return NO_DETERMINADA
 
-        candidate = " ".join(response.strip().split())
-        lowered_candidate = candidate.lower()
-        if lowered_candidate.startswith("federado ") or lowered_candidate.startswith("federados "):
-            parts = candidate.split(maxsplit=1)
-            candidate = f"Federado {parts[1]}" if len(parts) > 1 else "Federado"
+        candidate = self._normalize_category_candidate(response)
 
         lowered = candidate.lower()
         invalid_fragments = (
@@ -118,7 +138,34 @@ class CategoryDetectionService:
         if any(fragment in lowered for fragment in invalid_fragments):
             return NO_DETERMINADA
 
-        if len(candidate.split()) > 5:
+        if len(candidate.split()) > 5 and candidate not in FULL_CATEGORY_ALIASES:
             return NO_DETERMINADA
 
         return candidate if candidate in ALLOWED_DETECTED_CATEGORIES else NO_DETERMINADA
+
+    def _normalize_category_candidate(self, response: str) -> str:
+        """Normalizes convocatoria-style labels into canonical stored categories.
+
+        The RAG can return either the short category name or a literal line from
+        the convocatoria, for example `Aficionados o Novatos 3 (Varones y Damas):
+        40-49 años`. The application stores the canonical category name, so this
+        method strips age ranges and modality notes only after preserving the
+        valid category identity.
+        """
+
+        candidate = " ".join(response.strip().split())
+        candidate_without_age_range = candidate.split(":", maxsplit=1)[0].strip()
+
+        if candidate_without_age_range in FULL_CATEGORY_ALIASES:
+            return FULL_CATEGORY_ALIASES[candidate_without_age_range]
+
+        if ":" in candidate:
+            return candidate
+
+        candidate = re.sub(r"\s*\([^)]*\)", "", candidate_without_age_range).strip()
+        lowered_candidate = candidate.lower()
+        if lowered_candidate.startswith("federado ") or lowered_candidate.startswith("federados "):
+            parts = candidate.split(maxsplit=1)
+            candidate = f"Federado {parts[1]}" if len(parts) > 1 else "Federado"
+
+        return " ".join(candidate.split())

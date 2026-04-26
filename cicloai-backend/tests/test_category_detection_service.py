@@ -103,6 +103,45 @@ def test_detect_category_normalizes_federado_prefixed_response() -> None:
 
 
 @pytest.mark.parametrize(
+    ("raw_response", "expected"),
+    [
+        ("Sub 15 (Varones y Damas): 13-14 años", "Sub 15"),
+        ("Cadetes (Varones y Damas): 15-16 años", "Cadetes"),
+        ("Junior (Varones y Damas): 17-18 años", "Junior"),
+        ("Sub 23 (Varones): 19-22 años", "Sub 23"),
+        ("Elite (Varones y Damas): 23-29 años", "Elite"),
+        ("Federados Master A1 (Varones y Damas): 30-34 años", "Federado Master A1"),
+        ("Federados Master A2 (Varones y Damas): 35-39 años", "Federado Master A2"),
+        ("Federados Master B1 (Varones y Damas): 40-44 años", "Federado Master B1"),
+        ("Federados Master B2 (Varones y Damas): 45-49 años", "Federado Master B2"),
+        ("Federados Master C1 (Varones): 50-54 años", "Federado Master C1"),
+        ("Federados Master C2 (Varones): 55-59 años", "Federado Master C2"),
+        ("Federados Master C (Damas): 50 años y más", "Federado Master C"),
+        ("Federados Master D1 (Varones): 60-64 años", "Federado Master D1"),
+        ("Federados Master D2 (Varones): 65-69 años", "Federado Master D2"),
+        ("Aficionados o Novatos 1 (Varones y Damas): 16-29 años", "Aficionados o Novatos 1"),
+        ("Aficionados o Novatos 2 (Varones y Damas): 30-39 años", "Aficionados o Novatos 2"),
+        ("Aficionados o Novatos 3 (Varones y Damas)", "Aficionados o Novatos 3"),
+        ("Aficionados o Novatos 3 (Varones y Damas): 40-49 años", "Aficionados o Novatos 3"),
+        ("Aficionados o Novatos 4 (Varones): 50 años y más", "Aficionados o Novatos 4"),
+        ("Cicloturista Varones: 18 años en adelante", "Cicloturista Varones"),
+        ("Cicloturista Damas: 18 años en adelante", "Cicloturista Damas"),
+    ],
+)
+def test_detect_category_accepts_convocatoria_full_labels(raw_response: str, expected: str) -> None:
+    service, _rag_mock = build_service(raw_response)
+
+    result = service.detect_category(
+        birth_date=date(1980, 5, 10),
+        declared_category="AFICIONADO",
+        gender="Masculino",
+        date_of_race=date(2026, 4, 26),
+    )
+
+    assert result == expected
+
+
+@pytest.mark.parametrize(
     "raw_response",
     [
         None,
