@@ -5,18 +5,19 @@ import json
 import statistics
 import sys
 from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src"
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
-
 from cicloai.application.chunking import TextChunker, tokenize
 from cicloai.application.ingest_service import IngestService
 from cicloai.application.query_service import QueryService
 from cicloai.infrastructure.llm.extractive_llm import ExtractiveLLMClient
 from cicloai.infrastructure.repositories.json_document_repository import JsonDocumentRepository
 from cicloai.infrastructure.vector_store.hash_vector_store import HashVectorStore
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
 
 
 DATASET = [

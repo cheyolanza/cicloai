@@ -7,7 +7,6 @@ from sqlalchemy import engine_from_config, pool
 
 from cicloai.infrastructure.config import get_settings
 from cicloai.infrastructure.database.base import Base
-from cicloai.infrastructure.models import BikeRace, BikeTeam, BikerLookupAction, CompetitionBiker, CyclingTeam, RaceQrPayment
 
 config = context.config
 settings = get_settings()
