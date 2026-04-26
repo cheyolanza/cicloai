@@ -120,51 +120,51 @@ jobs:
         run: docker push "${{ steps.images.outputs.frontend_image_uri }}"
 
   security-scan:
-  name: Security Scan
-  needs: build-docker
-  runs-on: ubuntu-latest
+    name: Security Scan
+    needs: build-docker
+    runs-on: ubuntu-latest
 
-  permissions:
-    contents: read
-    id-token: write
+    permissions:
+      contents: read
+      id-token: write
 
-  steps:
-    - name: Authenticate to Google Cloud
-      uses: google-github-actions/auth@v2
-      with:
-        credentials_json: ${{ secrets.GCP_SA_KEY }}
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-    - name: Set up Google Cloud SDK
-      uses: google-github-actions/setup-gcloud@v2
-      with:
-        project_id: ${{ env.PROJECT_ID }}
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
 
-    - name: Configure Docker for Artifact Registry
-      run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 
-    - name: Pull Backend Image
-      run: docker pull "${{ needs.build-docker.outputs.backend_image_uri }}"
+      - name: Pull Backend Image
+        run: docker pull "${{ needs.build-docker.outputs.backend_image_uri }}"
 
-    - name: Pull Frontend Image
-      run: docker pull "${{ needs.build-docker.outputs.frontend_image_uri }}"
+      - name: Pull Frontend Image
+        run: docker pull "${{ needs.build-docker.outputs.frontend_image_uri }}"
 
-    - name: Scan Backend Image with Trivy
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: ${{ needs.build-docker.outputs.backend_image_uri }}
-        format: table
-        exit-code: "0"
-        vuln-type: "os,library"
-        severity: "CRITICAL,HIGH"
+      - name: Scan Backend Image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ needs.build-docker.outputs.backend_image_uri }}
+          format: table
+          exit-code: "0"
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
 
-    - name: Scan Frontend Image with Trivy
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: ${{ needs.build-docker.outputs.frontend_image_uri }}
-        format: table
-        exit-code: "0"
-        vuln-type: "os,library"
-        severity: "CRITICAL,HIGH"
+      - name: Scan Frontend Image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ needs.build-docker.outputs.frontend_image_uri }}
+          format: table
+          exit-code: "0"
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
 
   deploy-to-cloud:
     name: Deploy to Cloud
