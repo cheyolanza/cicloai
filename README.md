@@ -583,3 +583,340 @@ Este enfoque mejora la precisión, reduce alucinaciones y permite actualización
     "message": "Descripción del error"
   }
 }
+```
+
+---
+
+## 5. Seguridad, Cumplimiento y Ética
+
+### 5.1 Modelo de Amenazas y Controles de Seguridad
+
+| Amenaza / Riesgo | Vector de Ataque | Nivel | Control Implementado | Justificación Técnica |
+|-----------------|-----------------|-------|---------------------|----------------------|
+| Prompt Injection | Input malicioso del usuario | **ALTO** | Input sanitization + guardrails LLM | Validación de input, detección de patrones de inyección con regex + LLM classifier |
+| Data Leakage | Respuestas con PII no autorizado | **ALTO** | Output filtering + PII redaction | Integración con AWS Comprehend PII detection o equivalente |
+| API Key Exposure | Repositorio público / logs | **CRÍTICO** | Secrets Manager + SAST CI/CD | Pre-commit hooks, rotación automática de keys |
+| DoS / Abuso de API | Volumen excesivo de requests | **MEDIO** | Rate limiting + WAF | API Gateway throttling + AWS WAF / CloudFlare |
+| *[Amenaza]* | | | | |
+
+### 5.2 Cumplimiento Regulatorio
+
+| Regulación | Requerimiento Aplicable | Control Implementado | Evidencia |
+|-----------|------------------------|---------------------|-----------|
+| GDPR (si aplica) | Derecho al olvido, consentimiento explícito, notificación de breaches | *[Medidas implementadas]* | *[Link a política / log]* |
+| ISO 27001 / SOC 2 | Gestión de accesos, auditoría, continuidad del negocio | *[Controles]* | *[Evidencia]* |
+| Política Interna de IA | Uso responsable de IA, revisión humana de decisiones críticas | *[Definir]* | *[Evidencia]* |
+| *[Otra regulación]* | | | |
+
+### 5.3 Marco Ético de la Solución AI
+
+| Dimensión Ética | Riesgo Identificado | Mecanismo de Mitigación |
+|----------------|--------------------|-----------------------|
+| Sesgos algorítmicos | El modelo puede perpetuar sesgos del corpus de entrenamiento | Evaluación periódica de outputs + dataset de benchmarking de equidad |
+| Transparencia | Los usuarios pueden no saber que interactúan con IA | Disclosure explícito en interfaz + mecanismo de escalamiento a humano |
+| Alucinaciones | El modelo puede generar información falsa con confianza alta | RAG + citación de fuentes + umbral de confianza mínimo configurable |
+| Privacidad de datos | Inputs del usuario podrían usarse para reentrenamiento | Opt-out explícito, cero retention policy en APIs de terceros |
+| *[Dimensión adicional]* | | |
+
+---
+
+## 6. Implementación y Configuración de Infraestructura
+
+### 6.1 Stack Tecnológico y Justificación
+
+| Capa | Tecnología Seleccionada | Alternativas Evaluadas | Razón de Selección / Estado |
+|------|------------------------|------------------------|-----------------------------|
+| Frontend | React + TypeScript + Material UI | Next.js, Vue | Implementado. Permite construir la interfaz conversacional, formularios reutilizables y consumo de APIs REST. |
+| Backend API | FastAPI + Python | Flask, Django | Implementado. Framework liviano, compatible con tipado, Pydantic y servicios AI/LLM. |
+| LLM Provider | OpenAI | Gemini, Anthropic | Propuesto / Pendiente. Configurado para agente conversacional y RAG mediante variables de entorno. |
+| Modelo LLM | gpt-4o-mini | GPT-4o, Gemini 1.5 | Propuesto / configurable por variable de entorno. Usado como modelo objetivo para el agente y clasificación con RAG. |
+| Embeddings | text-embedding-3-small | all-MiniLM-L6-v2 | Propuesto / Pendiente. Definido para RAG por relación costo/rendimiento. |
+| RAG | Documentos locales desde `assets/documents/category_rules/` | Búsqueda directa en base de datos, prompts estáticos | Implementado parcialmente. Diseñado para responder sobre convocatoria y reglas usando `convocatoria.txt`. |
+| Vector DB | ChromaDB local | FAISS, Pinecone | Propuesto / Pendiente. Diseñado para persistencia local inicial del vector store. |
+| OCR | Google Vision API | AWS Textract, Tesseract | En integración. OCR para comprobantes de pago usando cuenta de servicio y `GOOGLE_APPLICATION_CREDENTIALS`. |
+| Base de Datos | PostgreSQL | MySQL, SQLite | Implementado. Persistencia relacional para carreras, ciclistas, equipos y pagos. |
+| Migraciones | Alembic | Flyway, Liquibase | Implementado. Versionado de cambios de esquema de base de datos. |
+| Seguridad | Google reCAPTCHA + Bearer Token | Auth0, Okta | Implementado parcialmente. CAPTCHA inicial y Bearer Token propio para endpoints protegidos. |
+| Containerización | Docker + docker-compose | Kubernetes, ECS | Implementado localmente. Kubernetes pendiente de implementación. |
+| CI/CD | GitHub Actions | GitHub Actions | Implementado para backend y despliegue Cloud Run mediante workflows separados. |
+| Observabilidad | Logging básico | CloudWatch, Grafana, Prometheus | Pendiente de implementación avanzada. |
+| Cloud Provider | Google Cloud | AWS, Azure | Parcial. Google Cloud se usa para OCR y el despliegue definido usa Artifact Registry, Cloud Run y Cloud SQL. |
+| IaC | Pendiente | Terraform, CDK | Pendiente de implementación. |
+
+### 6.2 Estructura del Repositorio
+
+La estructura actual del proyecto está separada en frontend, backend y orquestación local con Docker Compose. Algunas capacidades cloud permanecen pendientes de implementación.
+
+```bash
+cicloai/
+├── cicloai-backend/
+│   ├── src/
+│   │   └── cicloai/
+│   │       ├── application/
+│   │       ├── domain/
+│   │       ├── infrastructure/
+│   │       ├── interfaces/
+│   │       │   └── api/
+│   │       └── rag/
+│   ├── assets/
+│   │   ├── documents/
+│   │   │   └── category_rules/
+│   │   │       └── convocatoria.txt
+│   │   └── payments/
+│   ├── alembic/
+│   │   └── versions/
+│   ├── tests/
+│   ├── scripts/
+│   ├── data/
+│   ├── storage/
+│   ├── requirements.txt
+│   ├── Dockerfile
+│   ├── alembic.ini
+│   ├── .env.example
+│   └── README.md
+├── cicloai-frontend/
+│   ├── src/
+│   │   ├── app/
+│   │   ├── components/
+│   │   │   ├── common/
+│   │   │   └── layout/
+│   │   ├── config/
+│   │   ├── features/
+│   │   │   ├── access/
+│   │   │   ├── agent/
+│   │   │   ├── biker-search/
+│   │   │   ├── payment/
+│   │   │   ├── race/
+│   │   │   ├── registration/
+│   │   │   └── teams/
+│   │   ├── services/
+│   │   ├── styles/
+│   │   ├── theme/
+│   │   ├── types/
+│   │   └── utils/
+│   ├── public/
+│   │   └── images/
+│   ├── package.json
+│   ├── Dockerfile
+│   └── README.md
+├── secrets/
+│   └── google-service-account.json
+├── docker-compose.yml
+├── .env.example
+└── README.md
+```
+
+Notas de estado:
+
+- `secrets/google-service-account.json` representa la ruta esperada para credenciales locales de Google Cloud. El archivo real no debe versionarse.
+- `assets/payments/` almacena comprobantes subidos de forma local durante el flujo de validación OCR.
+- `assets/documents/category_rules/convocatoria.txt` es la fuente documental usada para reglas de convocatoria y detección de categorías.
+- Kubernetes, Terraform y observabilidad avanzada están pendientes de implementación.
+- El despliegue a Cloud Run está definido en GitHub Actions. La provisión de secretos en Google Secret Manager debe realizarse fuera del repositorio.
+
+### 6.3 Variables de Entorno Relevantes
+
+Las variables se gestionan mediante archivos `.env` y `.env.example`. Las credenciales reales no deben subirse al repositorio.
+
+| Variable | Uso | Estado |
+|---------|-----|--------|
+| `DATABASE_URL` | Override explícito de conexión SQLAlchemy. Si existe, tiene prioridad sobre `DB_*` y Cloud SQL | Implementado |
+| `DB_HOST` | Host PostgreSQL para ejecución local o Docker Compose | Implementado |
+| `DB_PORT` | Puerto PostgreSQL para ejecución local o Docker Compose | Implementado |
+| `DB_NAME` | Nombre de la base de datos PostgreSQL | Implementado |
+| `DB_USER` | Usuario PostgreSQL | Implementado |
+| `DB_PASSWORD` | Password PostgreSQL. En Cloud Run debe provenir de Secret Manager | Implementado |
+| `CLOUD_SQL_INSTANCE_CONNECTION_NAME` | Nombre de conexión Cloud SQL, por ejemplo `ciclo-ai:us-central1:cicloai-postgres` | Implementado para Cloud Run |
+| `JWT_SECRET_KEY` | Firma de Bearer Tokens propios del backend | Implementado |
+| `JWT_ALGORITHM` | Algoritmo JWT | Implementado |
+| `JWT_EXPIRE_SECONDS` | Tiempo de expiración del token | Implementado |
+| `GOOGLE_RECAPTCHA_SECRET_KEY` | Validación backend de reCAPTCHA | Implementado parcialmente |
+| `ENABLE_CAPTCHA_MOCK` | Activación de mock CAPTCHA en local | Implementado |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Ruta al JSON de cuenta de servicio para Google Vision API | En integración |
+| `GOOGLE_CLOUD_PROJECT_ID` | Proyecto Google Cloud asociado al OCR | En integración |
+| `GOOGLE_VISION_OCR_ENDPOINT` | Endpoint de Google Vision OCR | En integración |
+| `OPENAI_API_KEY` | API key para OpenAI | Propuesto / Pendiente |
+| `OPENAI_MODEL` | Modelo conversacional, por defecto `gpt-4o-mini` | Propuesto / configurable |
+| `OPENAI_EMBEDDING_MODEL` | Modelo de embeddings, por defecto `text-embedding-3-small` | Propuesto / configurable |
+| `RAG_TOP_K` | Cantidad de chunks recuperados por RAG | Propuesto / configurable |
+| `RAG_SIMILARITY_THRESHOLD` | Umbral de similitud para recuperación | Propuesto / configurable |
+| `CATEGORY_RULES_PDF_PATH` | Ruta al archivo de reglas, actualmente `convocatoria.txt` | Implementado |
+
+Prioridad de configuración de base de datos:
+
+1. Si `DATABASE_URL` tiene valor, el backend usa esa URL directamente.
+2. Si `DATABASE_URL` está vacío y existe `CLOUD_SQL_INSTANCE_CONNECTION_NAME`, el backend construye una URL compatible con Cloud SQL:
+
+```text
+postgresql+psycopg2://DB_USER:DB_PASSWORD@/DB_NAME?host=/cloudsql/CLOUD_SQL_INSTANCE_CONNECTION_NAME
+```
+
+3. Si no existe `CLOUD_SQL_INSTANCE_CONNECTION_NAME`, el backend construye la conexión local usando `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` y `DB_PASSWORD`.
+
+### 6.4 Ejecución Local con Docker Compose
+
+La ejecución local definida usa Docker Compose para levantar frontend, backend y PostgreSQL.
+
+```bash
+docker compose up --build
+```
+
+Servicios locales:
+
+| Servicio | URL / Puerto | Estado |
+|---------|--------------|--------|
+| Frontend | `http://localhost:5173` | Implementado |
+| Backend API | `http://localhost:8000` | Implementado |
+| PostgreSQL | `localhost:5432` | Implementado |
+
+Comandos operativos:
+
+```bash
+docker compose logs -f backend
+docker compose exec backend alembic upgrade head
+docker compose exec backend python -m cicloai.infrastructure.database.seed
+docker compose exec backend python -m cicloai.rag.index_documents
+```
+
+### 6.5 Pruebas y Cobertura
+
+El backend cuenta con pruebas unitarias iniciales usando `pytest`. La cobertura mínima requerida por CI es 75%.
+
+```bash
+cd cicloai-backend
+pytest
+PYTHONPATH=src COVERAGE_RCFILE=.coveragerc pytest --cov=cicloai --cov-report=term-missing --cov-fail-under=75
+```
+
+Estado:
+
+- Tests unitarios iniciales: Implementado.
+- `pytest-cov`: Implementado.
+- Objetivo de cobertura 75%: Implementado como quality gate del workflow backend.
+
+### 6.6 Despliegue en Google Cloud Run y Cloud SQL
+
+El despliegue a Google Cloud Run está definido en:
+
+```text
+.github/workflows/deploy.yml
+```
+
+El workflow construye y publica imágenes Docker en Artifact Registry, y despliega frontend y backend en servicios separados de Cloud Run.
+
+Para Cloud SQL se usa el nombre de conexión:
+
+```text
+ciclo-ai:us-central1:cicloai-postgres
+```
+
+El backend recibe estas variables durante el despliegue:
+
+```env
+DB_NAME=cicloai
+DB_USER=cicloai_user
+CLOUD_SQL_INSTANCE_CONNECTION_NAME=ciclo-ai:us-central1:cicloai-postgres
+```
+
+La contraseña no se define en el código ni en el workflow. Debe existir como secreto en Google Secret Manager:
+
+```text
+db-password
+```
+
+El workflow monta la instancia Cloud SQL con:
+
+```bash
+--add-cloudsql-instances="ciclo-ai:us-central1:cicloai-postgres"
+```
+
+También inyecta secretos sensibles desde Secret Manager:
+
+```text
+DB_PASSWORD=db-password:latest
+JWT_SECRET_KEY=jwt-secret-key:latest
+OPENAI_API_KEY=openai-api-key:latest
+GOOGLE_RECAPTCHA_SECRET_KEY=google-recaptcha-secret-key:latest
+/app/secrets/google-service-account.json=google-service-account-json:latest
+```
+
+Permisos requeridos para la service account usada por Cloud Run:
+
+- `Cloud SQL Client`
+- `Secret Manager Secret Accessor`
+- Permisos mínimos para leer imágenes desde Artifact Registry
+
+Si la base de datos creada en Cloud SQL tiene otro nombre, actualizar `CLOUD_SQL_DATABASE` en `.github/workflows/deploy.yml`.
+
+### 6.7 Pendientes de Infraestructura
+
+| Área | Estado |
+|------|--------|
+| Kubernetes | Pendiente de implementación |
+| Terraform / IaC | Pendiente de implementación |
+| Provisión automatizada de infraestructura cloud | Pendiente de implementación |
+| Creación automatizada de secretos | Pendiente de implementación |
+| Observabilidad avanzada | Pendiente de implementación |
+| Validación productiva del despliegue Cloud Run | Pendiente de implementación |
+
+---
+
+## CI/CD
+
+El backend cuenta con un workflow de GitHub Actions para validar instalación de dependencias, lint o chequeo sintáctico, tests y cobertura mínima.
+
+Workflow:
+
+```text
+.github/workflows/backend-ci.yml
+```
+
+El pipeline usa Python 3.11 y desactiva dependencias externas reales mediante variables de entorno seguras para CI:
+
+```env
+ENVIRONMENT=test
+ENABLE_CAPTCHA_MOCK=true
+RECAPTCHA_ENABLE_MOCKS=true
+ENABLE_OCR_MOCK=true
+ENABLE_RAG_MOCK=true
+JWT_SECRET_KEY=test-secret
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_SECONDS=3600
+DATABASE_URL=sqlite:///./test.db
+OPENAI_API_KEY=test-key
+CATEGORY_RULES_PDF_PATH=app/assets/documents/category_rules/convocatoria.txt
+```
+
+Comando principal del pipeline:
+
+```bash
+pytest --cov=app --cov-report=term-missing --cov-fail-under=75
+```
+
+Cobertura mínima requerida:
+
+```text
+75%
+```
+
+Comando local equivalente para backend:
+
+```bash
+cd cicloai-backend
+PYTHONPATH=src COVERAGE_RCFILE=.coveragerc pytest --cov=cicloai --cov-report=term-missing --cov-fail-under=75
+```
+
+Para ejecutar solo los tests sin cobertura:
+
+```bash
+cd cicloai-backend
+pytest
+```
+
+Notas:
+
+- El CI no llama OpenAI real.
+- El CI no llama Google Vision OCR real.
+- El CI no llama Google reCAPTCHA real.
+- El CI no requiere archivos JSON de credenciales.
+- El workflow crea placeholders seguros para documentos y pagos cuando son necesarios.

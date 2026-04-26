@@ -1,0 +1,35 @@
+{
+  "summary": {
+    "samples": 3,
+    "avg_latency_ms": 0.61,
+    "avg_term_recall": 1.0,
+    "context_precision_at_1": 1.0,
+    "avg_groundedness": 0.886
+  },
+  "rows": [
+    {
+      "question": "Como inicia el flujo de CicloAI?",
+      "answer": "Segun la base de conocimiento de CicloAI: el flujo de cicloai inicia con validacion de humanidad y validacion de correo electronico antes de crear una sesion cicloai analiza el comprobante de pago con ocr y compara el monto detectado contra el monto esperado por numero de participantes",
+      "latency_ms": 0.59,
+      "term_recall": 1.0,
+      "context_precision_at_1": 1.0,
+      "groundedness": 0.871
+    },
+    {
+      "question": "Que se valida en una inscripcion masiva?",
+      "answer": "Segun la base de conocimiento de CicloAI: la inscripcion masiva carga un archivo excel valida que los participantes pertenezcan al mismo equipo y revisa categorias validas el flujo de cicloai inicia con validacion de humanidad y validacion de correo electronico antes de crear una sesion",
+      "latency_ms": 0.67,
+      "term_recall": 1.0,
+      "context_precision_at_1": 1.0,
+      "groundedness": 0.917
+    },
+    {
+      "question": "Como se valida el pago?",
+      "answer": "Segun la base de conocimiento de CicloAI: cicloai analiza el comprobante de pago con ocr y compara el monto detectado contra el monto esperado por numero de participantes el flujo de cicloai inicia con validacion de humanidad y validacion de correo electronico antes de crear una sesion",
+      "latency_ms": 0.56,
+      "term_recall": 1.0,
+      "context_precision_at_1": 1.0,
+      "groundedness": 0.871
+    }
+  ]
+}

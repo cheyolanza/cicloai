@@ -1,0 +1,10 @@
+{
+  "requests": 50,
+  "concurrency": 5,
+  "successful": 50,
+  "errors": 0,
+  "rps": 748.26,
+  "avg_latency_ms": 6.3,
+  "p95_latency_ms": 8.44,
+  "max_latency_ms": 9.01
+}

@@ -1,0 +1,99 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cicloai-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-cicloai-db}
+      POSTGRES_USER: ${DB_USER:-cicloai_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-cicloai_pass_DB1}
+    ports:
+      - "5432:5432"
+    volumes:
+      - cicloai-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./cicloai-backend
+      dockerfile: Dockerfile
+    image: cicloai-backend:local
+    container_name: cicloai-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: local
+      STORAGE_DIR: /app/data
+      TOP_K: 3
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-cicloai-db}
+      DB_USER: ${DB_USER:-cicloai_user}
+      DB_PASSWORD: ${DB_PASSWORD:-cicloai_pass_DB1}
+      CLOUD_SQL_INSTANCE_CONNECTION_NAME: ${CLOUD_SQL_INSTANCE_CONNECTION_NAME:-}
+      JWT_SECRET_KEY: change-me-local-secret
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRE_SECONDS: 3600
+      ENABLE_CAPTCHA_MOCK: "true"
+      GOOGLE_RECAPTCHA_SECRET_KEY: ""
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-/app/secrets/google-service-account.json}
+      GOOGLE_CLOUD_PROJECT_ID: ${GOOGLE_CLOUD_PROJECT_ID:-ciclo-ai}
+      ENABLE_OCR_MOCK: ${ENABLE_OCR_MOCK:-true}
+      GOOGLE_VISION_OCR_ENDPOINT: ${GOOGLE_VISION_OCR_ENDPOINT:-https://vision.googleapis.com/v1/images:annotate}
+      PAYMENT_PROOFS_STORAGE_DIR: assets/payments
+      CATEGORY_RULES_PDF_PATH: ${CATEGORY_RULES_PDF_PATH:-assets/documents/category_rules/convocatoria.txt}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      RAG_TOP_K: ${RAG_TOP_K:-5}
+      RAG_SIMILARITY_THRESHOLD: ${RAG_SIMILARITY_THRESHOLD:-0.70}
+      RAG_DOCUMENTS_DIR: assets/documents/category_rules
+      RAG_VECTOR_STORE_DIR: storage/vector_store
+      RAG_AUTO_INDEX: ${RAG_AUTO_INDEX:-false}
+      ENABLE_RAG_MOCK: ${ENABLE_RAG_MOCK:-false}
+      ANONYMIZED_TELEMETRY: "False"
+    ports:
+      - "8000:8000"
+    volumes:
+      - cicloai-backend-data:/app/data
+      - cicloai-vector-store:/app/storage
+      - ./cicloai-backend/assets/payments:/app/assets/payments
+      - ./secrets:/app/secrets:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    command: >
+      sh -c "alembic upgrade head
+      && python -m cicloai.infrastructure.database.seed
+      && uvicorn cicloai.interfaces.api.main:app --host 0.0.0.0 --port 8000"
+
+  frontend:
+    build:
+      context: ./cicloai-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_APP_NAME: CicloAI
+        VITE_ENABLE_MOCKS: "true"
+        VITE_API_BASE_URL: http://localhost:8000/api/v1
+        VITE_RECAPTCHA_ENTERPRISE_SITE_KEY: 6LcYJMcsAAAAANnSzsP1VP4bJ86DKcGQzhVbZNO2
+    image: cicloai-frontend:local
+    container_name: cicloai-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+
+volumes:
+  cicloai-backend-data:
+  cicloai-vector-store:
+  cicloai-postgres-data:

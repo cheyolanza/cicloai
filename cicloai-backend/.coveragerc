@@ -1,0 +1,25 @@
+[run]
+branch = False
+omit =
+    */tests/*
+    */scripts/*
+    */alembic/*
+    */src/cicloai/application/captcha_service.py
+    */src/cicloai/application/google_vision_ocr_service.py
+    */src/cicloai/application/recaptcha_service.py
+    */src/cicloai/interfaces/api/main.py
+    */src/cicloai/rag/category_rules_rag_service.py
+    */src/cicloai/rag/document_loader.py
+    */src/cicloai/rag/prompt_builder.py
+    */src/cicloai/rag/rag_service.py
+    */src/cicloai/rag/retriever.py
+    */src/cicloai/rag/text_splitter.py
+    */src/cicloai/rag/vector_store.py
+
+[report]
+skip_empty = True
+show_missing = True
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    raise NotImplementedError
