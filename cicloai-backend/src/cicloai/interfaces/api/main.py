@@ -1,19 +1,24 @@
 from __future__ import annotations
 
 import base64
+import html
 import logging
+import os
 from datetime import date
 from io import StringIO
 from pathlib import Path
+from typing import Literal
 from uuid import uuid4
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from jwt import InvalidTokenError
 
 from cicloai.application.health_service import HealthService
+from cicloai.application.admin_auth_service import AdminAuthService
+from cicloai.application.admin_service import AdminBikerInput, AdminCategoryInput, AdminRaceInput, AdminService
 from cicloai.application.ingest_service import IngestService
 from cicloai.application.intent_detection_service import IntentDetectionService
 from cicloai.application.query_service import QueryService
@@ -36,7 +41,10 @@ from cicloai.interfaces.api.dependencies import (
     biker_lookup_action_service,
     biker_search_service,
     captcha_service,
+    admin_auth_service,
+    admin_service,
     cycling_team_service,
+    get_current_admin_from_token,
     get_current_user_from_token,
     health_service,
     ingest_service,
@@ -53,6 +61,21 @@ from cicloai.interfaces.api.schemas import (
     AgentChatResponse,
     AgentChatSourceResponse,
     AgentChatUiActionResponse,
+    AdminCategoryRequest,
+    AdminCategoryResponse,
+    AdminCategoryStatusRequest,
+    AdminLoginRequest,
+    AdminLoginResponse,
+    AdminBikerListResponse,
+    AdminBikerRequest,
+    AdminBikerResponse,
+    AdminBikerStatusRequest,
+    AdminDashboardResponse,
+    AdminPaymentBikerResponse,
+    AdminPaymentResponse,
+    AdminRaceRequest,
+    AdminRaceResponse,
+    AdminSessionResponse,
     BikeRaceResponse,
     BikeTeamResponse,
     BikerLookupActionRequest,
@@ -89,7 +112,23 @@ from cicloai.rag.vector_store import VectorStore
 SUPPORTED_PAYMENT_PROOF_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
 
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+)
+logging.getLogger().setLevel(getattr(logging, LOG_LEVEL, logging.INFO))
+logging.getLogger("cicloai").setLevel(getattr(logging, LOG_LEVEL, logging.INFO))
+
 logger = logging.getLogger(__name__)
+
+BIKER_EXPORT_COLUMNS = {
+    "full_name": "Nombre Completo",
+    "gender": "Sexo",
+    "detected_category": "Categoría",
+    "age": "Edad",
+    "bike_team_name": "Club de Ciclismo",
+}
 
 
 app = FastAPI(title=settings().app_name, version="0.1.0")
@@ -232,6 +271,469 @@ def verify_recaptcha(
     return verify_recaptcha_response(payload=payload, service=service)
 
 
+@app.post("/api/v1/admin/login", response_model=AdminLoginResponse)
+def admin_login(
+    payload: AdminLoginRequest,
+    service: AdminAuthService = Depends(admin_auth_service),
+    tokens: TokenService = Depends(token_service),
+) -> AdminLoginResponse:
+    user = service.authenticate(payload.username, payload.password)
+
+    if user is None:
+        raise HTTPException(status_code=401, detail="Username o password incorrectos.")
+
+    access_token, expires_in = tokens.create_admin_user_token(user.username)
+    return AdminLoginResponse(access_token=access_token, expires_in=expires_in, username=user.username)
+
+
+@app.get("/api/v1/admin/me", response_model=AdminSessionResponse)
+def admin_session(current_admin: TokenPayload = Depends(get_current_admin_from_token)) -> AdminSessionResponse:
+    return AdminSessionResponse(username=current_admin["sub"])
+
+
+@app.get("/api/v1/admin/dashboard", response_model=AdminDashboardResponse)
+def admin_dashboard(
+    service: AdminService = Depends(admin_service),
+    _current_admin: TokenPayload = Depends(get_current_admin_from_token),
+) -> AdminDashboardResponse:
+    metrics = service.dashboard_metrics()
+    return AdminDashboardResponse(
+        active_race_id=metrics.active_race_id,
+        active_race_name=metrics.active_race_name,
+        active_race_registered_bikers=metrics.active_race_registered_bikers,
+    )
+
+
+def _admin_race_input(payload: AdminRaceRequest) -> AdminRaceInput:
+    return AdminRaceInput(
+        name=payload.name,
+        location_name=payload.location_name,
+        location=payload.location,
+        strava_map_html=payload.strava_map_html,
+        year=payload.year,
+        date_of_race=payload.date_of_race,
+        status=payload.status,
+        cost=payload.cost,
+        currency=payload.currency,
+    )
+
+
+def _admin_race_response(race, registered_bikers: int = 0) -> AdminRaceResponse:
+    return AdminRaceResponse(
+        id=race.id,
+        name=race.name,
+        location_name=race.location_name,
+        location=race.location,
+        strava_map_html=race.strava_map_html,
+        year=race.year,
+        date_of_race=race.date_of_race,
+        status=race.status,
+        cost=race.cost,
+        currency=race.currency,
+        registered_bikers=registered_bikers,
+        created_at=race.created_at,
+        updated_at=race.updated_at,
+    )
+
+
+def _admin_category_input(payload: AdminCategoryRequest) -> AdminCategoryInput:
+    return AdminCategoryInput(
+        name=payload.name,
+        category_type=payload.category_type,
+        sex=payload.sex,
+        age_from=payload.age_from,
+        age_to=payload.age_to,
+        born_from=payload.born_from,
+        born_to=payload.born_to,
+        race_ids=payload.race_ids,
+    )
+
+
+def _admin_category_response(record) -> AdminCategoryResponse:
+    category = getattr(record, "category", record)
+    races = getattr(record, "races", [])
+    return AdminCategoryResponse(
+        id=category.id,
+        name=category.name,
+        category_type=category.category_type,
+        sex=category.sex,
+        age_from=category.age_from,
+        age_to=category.age_to,
+        born_from=category.born_from,
+        born_to=category.born_to,
+        race_ids=[race.id for race in races],
+        race_names=[race.name for race in races],
+        status=category.status,
+        created_at=category.created_at,
+        updated_at=category.updated_at,
+    )
+
+
+@app.get("/api/v1/admin/races", response_model=list[AdminRaceResponse])
+def admin_list_races(
+    service: AdminService = Depends(admin_service),
+    _current_admin: TokenPayload = Depends(get_current_admin_from_token),
+) -> list[AdminRaceResponse]:
+    return [_admin_race_response(race, registered_bikers=total) for race, total in service.list_races()]
+
+
+@app.post("/api/v1/admin/races", response_model=AdminRaceResponse)
+def admin_create_race(
+    payload: AdminRaceRequest,
+    service: AdminService = Depends(admin_service),
+    _current_admin: TokenPayload = Depends(get_current_admin_from_token),
+) -> AdminRaceResponse:
+    try:
+        race = service.create_race(_admin_race_input(payload))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return _admin_race_response(race)
+
+
+@app.put("/api/v1/admin/races/{race_id}", response_model=AdminRaceResponse)
+def admin_update_race(
+    race_id: UUID,
+    payload: AdminRaceRequest,
+    service: AdminService = Depends(admin_service),
+    _current_admin: TokenPayload = Depends(get_current_admin_from_token),
+) -> AdminRaceResponse:
+    try:
+        race = service.update_race(race_id, _admin_race_input(payload))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return _admin_race_response(race)
+
+
+@app.post("/api/v1/admin/races/{race_id}/deactivate", response_model=AdminRaceResponse)
+def admin_deactivate_race(
+    race_id: UUID,
+    service: AdminService = Depends(admin_service),
+    _current_admin: TokenPayload = Depends(get_current_admin_from_token),
+) -> AdminRaceResponse:
+    try:
+        race = service.deactivate_race(race_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return _admin_race_response(race)
+
+
+@app.get("/api/v1/admin/categories", response_model=list[AdminCategoryResponse])
+def admin_list_categories(
+    service: AdminService = Depends(admin_service),
+    _current_admin: TokenPayload = Depends(get_current_admin_from_token),
+) -> list[AdminCategoryResponse]:
+    return [_admin_category_response(category) for category in service.list_categories()]
+
+
+@app.post("/api/v1/admin/categories", response_model=AdminCategoryResponse)
+def admin_create_category(
+    payload: AdminCategoryRequest,
+    service: AdminService = Depends(admin_service),
+    _current_admin: TokenPayload = Depends(get_current_admin_from_token),
+) -> AdminCategoryResponse:
+    try:
+        category = service.create_category(_admin_category_input(payload))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return _admin_category_response(service.category_record(category.id))
+
+
+@app.put("/api/v1/admin/categories/{category_id}", response_model=AdminCategoryResponse)
+def admin_update_category(
+    category_id: UUID,
+    payload: AdminCategoryRequest,
+    service: AdminService = Depends(admin_service),
+    _current_admin: TokenPayload = Depends(get_current_admin_from_token),
+) -> AdminCategoryResponse:
+    try:
+        category = service.update_category(category_id, _admin_category_input(payload))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return _admin_category_response(service.category_record(category.id))
+
+
+@app.patch("/api/v1/admin/categories/{category_id}/status", response_model=AdminCategoryResponse)
+def admin_update_category_status(
+    category_id: UUID,
+    payload: AdminCategoryStatusRequest,
+    service: AdminService = Depends(admin_service),
+    _current_admin: TokenPayload = Depends(get_current_admin_from_token),
+) -> AdminCategoryResponse:
+    try:
+        category = service.update_category_status(category_id, payload.status)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return _admin_category_response(service.category_record(category.id))
+
+
+def _normalize_admin_biker_status(status: str) -> str:
+    if status == "registered":
+        return "habilitado"
+    if status in {"habilitado", "deshabilitado", "pendiente"}:
+        return status
+    return "pendiente"
+
+
+def _admin_biker_input(payload: AdminBikerRequest) -> AdminBikerInput:
+    return AdminBikerInput(
+        full_name=payload.full_name,
+        email=payload.email,
+        dni=payload.dni,
+        dni_extension=payload.dni_extension,
+        birth_date=payload.birth_date,
+        gender=payload.gender,
+        requested_category=payload.requested_category,
+        detected_category=payload.detected_category,
+        bike_team_name=payload.bike_team_name,
+        payment_status=payload.payment_status,
+        payment_reference=payload.payment_reference,
+        status=payload.status,
+    )
+
+
+def _calculate_age(birth_date: date, reference_date: date | None = None) -> int:
+    reference_date = reference_date or date.today()
+    years = reference_date.year - birth_date.year
+    has_not_had_birthday = (reference_date.month, reference_date.day) < (birth_date.month, birth_date.day)
+    return years - 1 if has_not_had_birthday else years
+
+
+def _admin_biker_response(biker, payment=None) -> AdminBikerResponse:
+    payment_id = payment.id if payment else None
+    return AdminBikerResponse(
+        id=biker.id,
+        race_id=biker.race_id,
+        full_name=biker.full_name,
+        email=biker.email,
+        dni=biker.dni,
+        dni_extension=biker.dni_extension,
+        birth_date=biker.birth_date,
+        gender=biker.gender,
+        age=_calculate_age(biker.birth_date),
+        requested_category=biker.requested_category,
+        detected_category=biker.detected_category,
+        bike_team_name=biker.bike_team_name,
+        payment_status=biker.payment_status,
+        payment_reference=biker.payment_reference,
+        status=_normalize_admin_biker_status(biker.status),
+        created_at=biker.created_at,
+        updated_at=biker.updated_at,
+        payment_id=payment_id,
+        payment_proof_url=f"/api/v1/admin/payments/{payment_id}/proof" if payment_id else None,
+    )
+
+
+def _biker_export_row_color(category: str) -> str:
+    normalized_category = category.strip().upper()
+    if "FEDERADO" in normalized_category:
+        return "#C6EFCE"
+    if "AFICIONADO" in normalized_category:
+        return "#FCE4D6"
+    if "CICLOTURISTA" in normalized_category:
+        return "#DDEBF7"
+    return "#FFFFFF"
+
+
+def _biker_export_cell_value(biker, field: str) -> str:
+    if field == "full_name":
+        return biker.full_name
+    if field == "gender":
+        return "Hombre" if biker.gender == "hombre" else "Mujer"
+    if field == "detected_category":
+        return biker.detected_category
+    if field == "age":
+        return str(_calculate_age(biker.birth_date))
+    if field == "bike_team_name":
+        return biker.bike_team_name
+    return ""
+
+
+def _build_biker_export_html(bikers, fields: list[str]) -> str:
+    headers = "".join(f"<th>{html.escape(BIKER_EXPORT_COLUMNS[field])}</th>" for field in fields)
+    rows = []
+    for biker in bikers:
+        color = _biker_export_row_color(biker.detected_category)
+        cells = "".join(
+            f"<td>{html.escape(_biker_export_cell_value(biker, field))}</td>"
+            for field in fields
+        )
+        rows.append(f'<tr style="background-color: {color};">{cells}</tr>')
+
+    return (
+        "<html><head><meta charset=\"utf-8\" /></head><body>"
+        "<table border=\"1\">"
+        f"<thead><tr>{headers}</tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody>"
+        "</table></body></html>"
+    )
+
+
+def _admin_payment_response(record) -> AdminPaymentResponse:
+    payment = record.payment
+    bikers = record.bikers
+    enabled_bikers = [biker for biker in bikers if _normalize_admin_biker_status(biker.status) == "habilitado"]
+    payment_kind = "grupal" if payment.payment_group_id is not None else "individual"
+    can_validate = len(bikers) > 0 and len(enabled_bikers) < len(bikers)
+    if payment_kind == "grupal" and len(bikers) <= 1:
+        can_validate = False
+
+    return AdminPaymentResponse(
+        id=payment.id,
+        race_id=record.race.id,
+        race_name=record.race.name,
+        race_location_name=record.race.location_name,
+        race_year=record.race.year,
+        created_at=payment.created_at,
+        transaction_id=payment.id_transaction,
+        extracted_amount=payment.extracted_amount,
+        validated_amount=payment.expected_amount if payment.status == "validated" else None,
+        expected_amount=payment.expected_amount,
+        currency=payment.currency,
+        total_collected=record.total_collected,
+        payment_proof_url=f"/api/v1/admin/payments/{payment.id}/proof",
+        status=payment.status,
+        payment_kind=payment_kind,
+        biker_count=len(bikers),
+        enabled_biker_count=len(enabled_bikers),
+        can_validate=can_validate,
+        bikers=[
+            AdminPaymentBikerResponse(
+                id=biker.id,
+                full_name=biker.full_name,
+                status=_normalize_admin_biker_status(biker.status),
+            )
+            for biker in bikers
+        ],
+    )
+
+
+@app.get("/api/v1/admin/races/{race_id}/bikers/export")
+def admin_export_race_bikers(
+    race_id: UUID,
+    fields: list[str] = Query(default=["full_name", "detected_category", "age", "bike_team_name"]),
+    service: AdminService = Depends(admin_service),
+    _current_admin: TokenPayload = Depends(get_current_admin_from_token),
+) -> StreamingResponse:
+    selected_fields = [field for field in fields if field in BIKER_EXPORT_COLUMNS]
+    if not selected_fields:
+        raise HTTPException(status_code=400, detail="Selecciona al menos una columna para exportar.")
+
+    try:
+        bikers = service.list_bikers_for_export(race_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    content = _build_biker_export_html(bikers, selected_fields)
+    return StreamingResponse(
+        iter([content.encode("utf-8")]),
+        media_type="application/vnd.ms-excel; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="corredores-cicloai.xls"'},
+    )
+
+
+@app.get("/api/v1/admin/races/{race_id}/bikers", response_model=AdminBikerListResponse)
+def admin_list_race_bikers(
+    race_id: UUID,
+    page: int = Query(default=0, ge=0),
+    page_size: int = Query(default=50, ge=1, le=100),
+    search: str = Query(default=""),
+    sort_by: Literal["full_name", "gender", "age", "bike_team_name", "detected_category", "created_at", "status"] = "created_at",
+    sort_direction: Literal["asc", "desc"] = "desc",
+    service: AdminService = Depends(admin_service),
+    _current_admin: TokenPayload = Depends(get_current_admin_from_token),
+) -> AdminBikerListResponse:
+    try:
+        result = service.list_bikers(
+            race_id,
+            page=page,
+            page_size=page_size,
+            search=search,
+            sort_by=sort_by,
+            sort_direction=sort_direction,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return AdminBikerListResponse(
+        items=[_admin_biker_response(biker, payment) for biker, payment in result.items],
+        total=result.total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@app.get("/api/v1/admin/payments", response_model=list[AdminPaymentResponse])
+def admin_list_payments(
+    service: AdminService = Depends(admin_service),
+    _current_admin: TokenPayload = Depends(get_current_admin_from_token),
+) -> list[AdminPaymentResponse]:
+    return [_admin_payment_response(record) for record in service.list_payments()]
+
+
+@app.post("/api/v1/admin/payments/{payment_id}/validate", response_model=AdminPaymentResponse)
+def admin_validate_payment(
+    payment_id: UUID,
+    service: AdminService = Depends(admin_service),
+    _current_admin: TokenPayload = Depends(get_current_admin_from_token),
+) -> AdminPaymentResponse:
+    try:
+        record = service.validate_payment(payment_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return _admin_payment_response(record)
+
+
+@app.put("/api/v1/admin/bikers/{biker_id}", response_model=AdminBikerResponse)
+def admin_update_biker(
+    biker_id: UUID,
+    payload: AdminBikerRequest,
+    service: AdminService = Depends(admin_service),
+    _current_admin: TokenPayload = Depends(get_current_admin_from_token),
+) -> AdminBikerResponse:
+    try:
+        biker = service.update_biker(biker_id, _admin_biker_input(payload))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return _admin_biker_response(biker)
+
+
+@app.patch("/api/v1/admin/bikers/{biker_id}/status", response_model=AdminBikerResponse)
+def admin_update_biker_status(
+    biker_id: UUID,
+    payload: AdminBikerStatusRequest,
+    service: AdminService = Depends(admin_service),
+    _current_admin: TokenPayload = Depends(get_current_admin_from_token),
+) -> AdminBikerResponse:
+    try:
+        biker = service.update_biker_status(biker_id, payload.status)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return _admin_biker_response(biker)
+
+
+@app.get("/api/v1/admin/payments/{payment_id}/proof")
+def admin_payment_proof(
+    payment_id: UUID,
+    service: AdminService = Depends(admin_service),
+    _current_admin: TokenPayload = Depends(get_current_admin_from_token),
+) -> FileResponse:
+    try:
+        proof_path = service.get_payment_proof_path(payment_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    return FileResponse(proof_path)
+
+
 @app.post("/api/v1/security/captcha/verify", response_model=TokenResponse)
 async def verify_captcha_and_issue_token(
     payload: CaptchaVerifyRequest,
@@ -268,6 +770,7 @@ def active_bike_race(
         name=race.name,
         location_name=race.location_name,
         location=race.location,
+        strava_map_html=race.strava_map_html,
         year=race.year,
         date_of_race=race.date_of_race,
         status=race.status,
@@ -448,14 +951,37 @@ async def review_first_race_registration(
     try:
         review = service.build_first_race_review(registration)
     except GoogleVisionOcrConfigurationError as exc:
+        logger.exception(
+            "POST /api/v1/registrations/first-race/review OCR configuration error dni=%s proof_path=%s",
+            dni,
+            proof_path,
+        )
         raise HTTPException(
             status_code=503,
             detail="Google OCR no está configurado correctamente. Verifique GOOGLE_APPLICATION_CREDENTIALS.",
         ) from exc
     except GoogleVisionOcrProcessingError as exc:
+        logger.exception(
+            "POST /api/v1/registrations/first-race/review OCR processing error dni=%s proof_path=%s",
+            dni,
+            proof_path,
+        )
         raise HTTPException(status_code=503, detail="No se pudo procesar el comprobante con Google Vision OCR.") from exc
     except ValueError as exc:
+        logger.warning(
+            "POST /api/v1/registrations/first-race/review business error dni=%s proof_path=%s detail=%s",
+            dni,
+            proof_path,
+            exc,
+        )
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception:
+        logger.exception(
+            "POST /api/v1/registrations/first-race/review unexpected error dni=%s proof_path=%s",
+            dni,
+            proof_path,
+        )
+        raise
 
     review_token = tokens.create_registration_review_token(review.to_token_payload())
     return RegistrationReviewResponse(review_token=review_token, **review.to_token_payload())

@@ -11,8 +11,9 @@ from cicloai.application.bike_race_service import BikeRaceService
 from cicloai.application.bike_team_service import BikeTeamService
 from cicloai.application.biker_lookup_action_service import BikerLookupActionService
 from cicloai.application.biker_search_service import BikerSearchService
+from cicloai.application.admin_auth_service import AdminAuthService
+from cicloai.application.admin_service import AdminService
 from cicloai.application.captcha_service import CaptchaService
-from cicloai.application.category_detection_service import CategoryDetectionService
 from cicloai.application.chunking import TextChunker
 from cicloai.application.health_service import HealthService
 from cicloai.application.ingest_service import IngestService
@@ -21,7 +22,7 @@ from cicloai.application.query_service import QueryService
 from cicloai.application.recaptcha_service import RecaptchaVerificationService
 from cicloai.application.payment_proof_ocr_service import PaymentProofOcrService
 from cicloai.application.payment_validation_service import PaymentValidationService
-from cicloai.application.registration_service import CategoryRulesService, RegistrationService
+from cicloai.application.registration_service import RegistrationService
 from cicloai.application.cycling_team_service import CyclingTeamService
 from cicloai.application.token_service import TokenPayload, TokenService
 from cicloai.infrastructure.config import Settings, get_settings
@@ -30,7 +31,6 @@ from cicloai.infrastructure.llm.extractive_llm import ExtractiveLLMClient
 from cicloai.infrastructure.repositories.json_document_repository import JsonDocumentRepository
 from cicloai.infrastructure.vector_store.hash_vector_store import HashVectorStore
 from cicloai.rag.config import build_rag_config
-from cicloai.rag.category_rules_rag_service import CategoryRulesRagService
 from cicloai.rag.prompt_builder import PromptBuilder
 from cicloai.rag.rag_service import RagService
 from cicloai.rag.retriever import Retriever
@@ -108,6 +108,14 @@ def bike_race_service(db: Session = Depends(get_db)) -> BikeRaceService:
     return BikeRaceService(db)
 
 
+def admin_auth_service(db: Session = Depends(get_db)) -> AdminAuthService:
+    return AdminAuthService(db)
+
+
+def admin_service(db: Session = Depends(get_db)) -> AdminService:
+    return AdminService(db)
+
+
 def bike_team_service(db: Session = Depends(get_db)) -> BikeTeamService:
     return BikeTeamService(db)
 
@@ -135,29 +143,12 @@ def payment_validation_service(db: Session = Depends(get_db)) -> PaymentValidati
     return PaymentValidationService(db)
 
 
-def category_rules_rag_service() -> CategoryRulesRagService:
-    return CategoryRulesRagService(settings())
-
-
-def category_detection_service(
-    category_rag: CategoryRulesRagService = Depends(category_rules_rag_service),
-) -> CategoryDetectionService:
-    return CategoryDetectionService(category_rag)
-
-
-def category_rules_service(
-    detector: CategoryDetectionService = Depends(category_detection_service),
-) -> CategoryRulesService:
-    return CategoryRulesService(settings().category_rules_pdf_path, detector)
-
-
 def registration_service(
     db: Session = Depends(get_db),
     payment_ocr: PaymentProofOcrService = Depends(payment_ocr_service),
     payment_validator: PaymentValidationService = Depends(payment_validation_service),
-    category_rules: CategoryRulesService = Depends(category_rules_service),
 ) -> RegistrationService:
-    return RegistrationService(db, payment_ocr, payment_validator, category_rules)
+    return RegistrationService(db, payment_ocr, payment_validator)
 
 
 def get_current_user_from_token(
@@ -175,3 +166,20 @@ def get_current_user_from_token(
         from fastapi import HTTPException
 
         raise HTTPException(status_code=401, detail="Operación no permitida. El usuario debe validarse.") from exc
+
+
+def get_current_admin_from_token(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    service: TokenService = Depends(token_service),
+) -> TokenPayload:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=401, detail="Credenciales de administrador requeridas.")
+
+    try:
+        return service.decode_admin_user_token(credentials.credentials)
+    except InvalidTokenError as exc:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=401, detail="Sesión de administrador inválida o expirada.") from exc

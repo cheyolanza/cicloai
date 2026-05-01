@@ -26,6 +26,7 @@ class BikeRace(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     location_name: Mapped[str] = mapped_column(String(150), nullable=False)
     location: Mapped[str | None] = mapped_column(Text, nullable=True)
+    strava_map_html: Mapped[str | None] = mapped_column(Text, nullable=True)
     year: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     date_of_race: Mapped[date | None] = mapped_column(Date, nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, index=True)

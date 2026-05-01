@@ -27,11 +27,16 @@ class CompetitionBiker(Base):
     race_id: Mapped[PythonUUID] = mapped_column(
         PostgresUUID(as_uuid=True), ForeignKey("bike_races.id", ondelete="RESTRICT"), nullable=False, index=True
     )
+    category_id: Mapped[PythonUUID | None] = mapped_column(
+        PostgresUUID(as_uuid=True), ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    payment_group_id: Mapped[PythonUUID | None] = mapped_column(PostgresUUID(as_uuid=True), nullable=True, index=True)
     full_name: Mapped[str] = mapped_column(String(150), nullable=False)
     email: Mapped[str] = mapped_column(String(254), nullable=False)
     dni: Mapped[str] = mapped_column(String(7), nullable=False, index=True)
     dni_extension: Mapped[str] = mapped_column(String(2), nullable=False)
     birth_date: Mapped[date] = mapped_column(Date, nullable=False)
+    gender: Mapped[str] = mapped_column(String(10), nullable=False, default="hombre", server_default="hombre", index=True)
     requested_category: Mapped[str] = mapped_column(String(30), nullable=False)
     detected_category: Mapped[str] = mapped_column(String(30), nullable=False)
     bike_team_name: Mapped[str] = mapped_column(String(100), nullable=False)

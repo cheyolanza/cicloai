@@ -7,21 +7,19 @@ from datetime import datetime, timedelta
 from io import StringIO
 from pathlib import Path
 import re
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from cicloai.infrastructure.models.bike_race import BikeRace, BikeRaceStatus
+from cicloai.infrastructure.models.bike_race_category import BikeRaceCategory
 from cicloai.infrastructure.models.bike_team import BikeTeam
+from cicloai.infrastructure.models.category import Category
 from cicloai.infrastructure.models.competition_biker import CompetitionBiker
-from cicloai.application.category_detection_service import CategoryDetectionService, NO_DETERMINADA
 from cicloai.application.payment_proof_ocr_service import PaymentProofOcrService
 from cicloai.application.payment_validation_service import PaymentValidationService
-
-
-ALLOWED_CATEGORIES = ("CICLOTURISTA", "AFICIONADO", "FEDERADO")
 
 
 @dataclass(frozen=True)
@@ -41,6 +39,7 @@ class NewBikerRegistrationInput:
 
 @dataclass(frozen=True)
 class CategoryValidationResult:
+    category_id: UUID | None
     detected_category: str
     valid: bool
     message: str
@@ -77,7 +76,9 @@ class RegistrationReview:
     full_name: str
     email: str
     birth_date: date
+    gender: str
     requested_category: str
+    category_id: UUID | None
     detected_category: str
     bike_team_name: str
     payment_id: UUID
@@ -105,7 +106,9 @@ class RegistrationReview:
             "full_name": self.full_name,
             "email": self.email,
             "birth_date": self.birth_date.isoformat(),
+            "gender": self.gender,
             "requested_category": self.requested_category,
+            "category_id": str(self.category_id) if self.category_id else "",
             "detected_category": self.detected_category,
             "bike_team_name": self.bike_team_name,
             "payment_id": str(self.payment_id),
@@ -135,7 +138,9 @@ class RegistrationReview:
             full_name=payload["full_name"],
             email=payload["email"],
             birth_date=date.fromisoformat(payload["birth_date"]),
+            gender=payload.get("gender", "hombre"),
             requested_category=payload["requested_category"],
+            category_id=UUID(payload["category_id"]) if payload.get("category_id") else None,
             detected_category=payload["detected_category"],
             bike_team_name=payload["bike_team_name"],
             payment_id=UUID(payload["payment_id"]),
@@ -152,73 +157,6 @@ class RegistrationReview:
             payment_bank_name=payload.get("payment_bank_name") or None,
             category_message=payload["category_message"],
             rules_source=payload["rules_source"],
-        )
-
-
-class CategoryRulesService:
-    """Validates and detects the exact race category through convocatoria RAG."""
-
-    def __init__(self, rules_pdf_path: Path, detector: CategoryDetectionService) -> None:
-        self._rules_pdf_path = rules_pdf_path
-        self._detector = detector
-
-    def validate(
-        self,
-        birth_date: date,
-        requested_category: str,
-        *,
-        gender: str | None = None,
-        race: BikeRace,
-    ) -> CategoryValidationResult:
-        normalized_category = requested_category.strip().upper()
-        reference_date = race.date_of_race or date.today()
-
-        if birth_date >= reference_date:
-            return CategoryValidationResult(
-                detected_category=normalized_category,
-                valid=False,
-                message="La fecha de nacimiento debe ser anterior a la fecha de referencia de la carrera.",
-                rules_source=self._rules_pdf_path.name,
-            )
-
-        if normalized_category not in ALLOWED_CATEGORIES:
-            return CategoryValidationResult(
-                detected_category=normalized_category,
-                valid=False,
-                message="La categoría solicitada no existe en las reglas del certamen.",
-                rules_source=self._rules_pdf_path.name,
-            )
-
-        print(
-            "[CicloAI][CategoryRulesService.validate] detector_input="
-            f"{{birth_date={birth_date.isoformat()}, requested_category={requested_category}, "
-            f"gender={gender}, race_date={race.date_of_race.isoformat() if race.date_of_race else None}}}",
-            flush=True,
-        )
-        detected_category = self._detector.detect_category(
-            birth_date=birth_date,
-            declared_category=requested_category,
-            gender=gender,
-            date_of_race=race.date_of_race,
-        )
-        print(
-            "[CicloAI][CategoryRulesService.validate] detector_output="
-            f"{detected_category}",
-            flush=True,
-        )
-        if detected_category == NO_DETERMINADA:
-            return CategoryValidationResult(
-                detected_category=NO_DETERMINADA,
-                valid=False,
-                message="No se pudo determinar la categoría exacta con las reglas de la convocatoria.",
-                rules_source=self._rules_pdf_path.name,
-            )
-
-        return CategoryValidationResult(
-            detected_category=detected_category,
-            valid=True,
-            message="Categoría detectada con RAG usando las reglas de la convocatoria.",
-            rules_source=self._rules_pdf_path.name,
         )
 
 
@@ -323,12 +261,10 @@ class RegistrationService:
         db: Session,
         payment_ocr: PaymentProofOcrService,
         payment_validator: PaymentValidationService,
-        category_rules: CategoryRulesService,
     ) -> None:
         self._db = db
         self._payment_ocr = payment_ocr
         self._payment_validator = payment_validator
-        self._category_rules = category_rules
 
     def build_first_race_review(self, registration: NewBikerRegistrationInput) -> RegistrationReview:
         race = self._get_active_race()
@@ -344,7 +280,7 @@ class RegistrationService:
             proof_path=registration.payment_proof_path,
             expected_amount=race.cost,
         )
-        category_result = self._category_rules.validate(
+        category_result = self._resolve_category(
             birth_date=registration.birth_date,
             requested_category=registration.requested_category,
             gender=registration.gender,
@@ -370,7 +306,9 @@ class RegistrationService:
             full_name=registration.full_name.strip(),
             email=registration.email.strip().lower(),
             birth_date=registration.birth_date,
+            gender=self._normalize_competition_gender(registration.gender),
             requested_category=registration.requested_category.strip().upper(),
+            category_id=category_result.category_id,
             detected_category=category_result.detected_category,
             bike_team_name=registration.bike_team_name.strip().upper(),
             payment_id=payment_result.payment_id,
@@ -394,9 +332,10 @@ class RegistrationService:
         competitors = BulkExcelService().parse(filename=filename, file_bytes=file_bytes)
         self._ensure_bulk_file_has_no_duplicates(competitors)
 
+        payment_group_id = uuid4()
         bikers: list[CompetitionBiker] = []
         for competitor in competitors:
-            category_result = self._category_rules.validate(
+            category_result = self._resolve_category(
                 birth_date=competitor.birth_date,
                 requested_category=competitor.requested_category,
                 gender=competitor.gender,
@@ -414,17 +353,20 @@ class RegistrationService:
             bikers.append(
                 CompetitionBiker(
                     race_id=race.id,
+                    category_id=category_result.category_id,
+                    payment_group_id=payment_group_id,
                     full_name=competitor.full_name.strip(),
                     email=f"bulk-{competitor.dni}@cicloai.local",
                     dni=competitor.dni,
                     dni_extension="SC",
                     birth_date=competitor.birth_date,
+                    gender=self._normalize_competition_gender(competitor.gender),
                     requested_category=competitor.requested_category.strip().upper(),
                     detected_category=category_result.detected_category,
                     bike_team_name="INDEPENDIENTE",
                     payment_status="pending_bulk_payment",
-                    payment_reference="BULK-PENDING",
-                    status="registered",
+                    payment_reference=f"BULK-{str(payment_group_id)[:8].upper()}",
+                    status="pendiente",
                 )
             )
 
@@ -455,17 +397,19 @@ class RegistrationService:
 
         biker = CompetitionBiker(
             race_id=review.race_id,
+            category_id=review.category_id,
             full_name=review.full_name,
             email=review.email,
             dni=review.dni,
             dni_extension=review.dni_extension,
             birth_date=review.birth_date,
+            gender=self._normalize_competition_gender(review.gender),
             requested_category=review.requested_category,
             detected_category=review.detected_category,
             bike_team_name=review.bike_team_name,
             payment_status=review.payment_status,
             payment_reference=review.payment_reference,
-            status="registered",
+            status="pendiente",
         )
         self._db.add(biker)
 
@@ -487,6 +431,90 @@ class RegistrationService:
         years = reference_date.year - birth_date.year
         has_not_had_birthday = (reference_date.month, reference_date.day) < (birth_date.month, birth_date.day)
         return years - 1 if has_not_had_birthday else years
+
+    def _normalize_competition_gender(self, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized in {"masculino", "hombre", "male", "m"}:
+            return "hombre"
+        if normalized in {"femenino", "mujer", "female", "f"}:
+            return "mujer"
+        raise ValueError("El sexo del corredor no es válido.")
+
+    def _normalize_category_type(self, value: str) -> str:
+        normalized = value.strip().upper()
+        category_types = {
+            "CICLOTURISTA": "Cicloturista",
+            "CICLOTURISTAS": "Cicloturista",
+            "AFICIONADO": "Aficionado",
+            "AFICIONADOS": "Aficionado",
+            "NOVATO": "Aficionado",
+            "NOVATOS": "Aficionado",
+            "FEDERADO": "Federado",
+            "FEDERADOS": "Federado",
+        }
+        if normalized not in category_types:
+            raise ValueError("El tipo de categoría seleccionado no es válido.")
+        return category_types[normalized]
+
+    def _resolve_category(
+        self,
+        *,
+        birth_date: date,
+        requested_category: str,
+        gender: str,
+        race: BikeRace,
+    ) -> CategoryValidationResult:
+        reference_date = race.date_of_race or date.today()
+        if birth_date >= reference_date:
+            return CategoryValidationResult(
+                category_id=None,
+                detected_category="Sin Categoria",
+                valid=False,
+                message="La fecha de nacimiento debe ser anterior a la fecha de referencia de la carrera.",
+                rules_source="categories",
+            )
+
+        category_type = self._normalize_category_type(requested_category)
+        competition_gender = self._normalize_competition_gender(gender)
+        category_sex = "varones" if competition_gender == "hombre" else "damas"
+        age = self._calculate_age(birth_date=birth_date, reference_date=reference_date)
+        birth_year = birth_date.year
+
+        statement = (
+            select(Category)
+            .join(BikeRaceCategory, BikeRaceCategory.category_id == Category.id)
+            .where(
+                BikeRaceCategory.race_id == race.id,
+                Category.status == "active",
+                Category.category_type == category_type,
+                Category.sex == category_sex,
+                Category.age_from <= age,
+                or_(Category.age_to.is_(None), Category.age_to >= age),
+                or_(
+                    and_(Category.born_from <= birth_year, Category.born_to >= birth_year),
+                    and_(Category.born_from >= birth_year, Category.born_to <= birth_year),
+                ),
+            )
+            .order_by(Category.age_from.desc(), Category.age_to.asc().nulls_last(), func.upper(Category.name).asc())
+            .limit(1)
+        )
+        category = self._db.execute(statement).scalar_one_or_none()
+        if category is None:
+            return CategoryValidationResult(
+                category_id=None,
+                detected_category="Sin Categoria",
+                valid=True,
+                message="No existe una categoría habilitada para la carrera con ese tipo y edad.",
+                rules_source="categories",
+            )
+
+        return CategoryValidationResult(
+            category_id=category.id,
+            detected_category=category.name,
+            valid=True,
+            message="Categoría resuelta por tipo, edad y categorías habilitadas en la carrera.",
+            rules_source="categories",
+        )
 
     def _ensure_not_registered(self, review: RegistrationReview) -> None:
         """Blocks duplicate registrations for the same race.

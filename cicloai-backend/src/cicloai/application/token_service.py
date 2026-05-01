@@ -36,10 +36,37 @@ class TokenService:
         token = jwt.encode(payload, self._settings.jwt_secret_key, algorithm=self._settings.jwt_algorithm)
         return token, self._settings.jwt_expire_seconds
 
+    def create_admin_user_token(self, username: str) -> tuple[str, int]:
+        issued_at = datetime.now(timezone.utc)
+        expires_at = issued_at + timedelta(seconds=self._settings.jwt_expire_seconds)
+        payload = {
+            "sub": username,
+            "scope": "admin_user",
+            "iat": int(issued_at.timestamp()),
+            "exp": int(expires_at.timestamp()),
+            "token_type": "bearer",
+        }
+        token = jwt.encode(payload, self._settings.jwt_secret_key, algorithm=self._settings.jwt_algorithm)
+        return token, self._settings.jwt_expire_seconds
+
     def decode_public_user_token(self, token: str) -> TokenPayload:
         payload = jwt.decode(token, self._settings.jwt_secret_key, algorithms=[self._settings.jwt_algorithm])
 
         if payload.get("token_type") != "bearer" or payload.get("scope") != "public_user":
+            raise InvalidTokenError("Invalid token claims")
+
+        return {
+            "sub": str(payload["sub"]),
+            "scope": str(payload["scope"]),
+            "iat": int(payload["iat"]),
+            "exp": int(payload["exp"]),
+            "token_type": str(payload["token_type"]),
+        }
+
+    def decode_admin_user_token(self, token: str) -> TokenPayload:
+        payload = jwt.decode(token, self._settings.jwt_secret_key, algorithms=[self._settings.jwt_algorithm])
+
+        if payload.get("token_type") != "bearer" or payload.get("scope") != "admin_user":
             raise InvalidTokenError("Invalid token claims")
 
         return {

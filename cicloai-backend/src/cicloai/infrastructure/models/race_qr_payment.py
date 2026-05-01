@@ -32,6 +32,7 @@ class RaceQrPayment(Base):
     competition_biker_id: Mapped[PythonUUID | None] = mapped_column(
         PostgresUUID(as_uuid=True), ForeignKey("competition_bikers.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    payment_group_id: Mapped[PythonUUID | None] = mapped_column(PostgresUUID(as_uuid=True), nullable=True, index=True)
     expected_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     extracted_amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="BOB")

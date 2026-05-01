@@ -105,6 +105,12 @@ class PaymentValidationService:
         if status == "validated" and id_transaction and self._transaction_exists(id_transaction):
             status = "rejected"
             message = "El id de transacción ya fue registrado previamente."
+            logger.warning(
+                "payment_validation_rejected duplicate_transaction_id=%s race_id=%s proof_file=%s",
+                id_transaction,
+                race.id,
+                proof_path.name,
+            )
 
         self._log_payment_validation(
             extracted=extracted,
@@ -129,7 +135,17 @@ class PaymentValidationService:
             rejection_reason=None if status == "validated" else message,
         )
         self._db.add(payment)
-        self._db.flush()
+        try:
+            self._db.flush()
+        except Exception:
+            logger.exception(
+                "payment_validation_persist_error race_id=%s proof_file=%s id_transaction=%s status=%s",
+                race.id,
+                proof_path.name,
+                id_transaction,
+                status,
+            )
+            raise
 
         return PaymentValidationResult(
             payment_id=payment.id,
@@ -181,7 +197,8 @@ class PaymentValidationService:
     ) -> None:
         """Logs the parsed OCR payment fields and final validation decision."""
 
-        logger.info(
+        log = logger.info if status == "validated" else logger.warning
+        log(
             "payment_ocr_detected amount=%s expected_amount=%s currency=%s payment_date=%s id_transaction=%s bank_name=%s payment_valid=%s status=%s message=%s",
             extracted.amount,
             expected_amount,
