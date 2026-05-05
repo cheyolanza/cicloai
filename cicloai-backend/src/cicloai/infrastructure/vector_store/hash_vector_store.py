@@ -27,6 +27,7 @@ class HashVectorStore:
         for chunk in chunks:
             if chunk.chunk_id in existing_ids:
                 continue
+            existing_ids.add(chunk.chunk_id)
             records.append(
                 {
                     "chunk": {
