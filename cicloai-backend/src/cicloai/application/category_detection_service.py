@@ -3,7 +3,10 @@ from __future__ import annotations
 import re
 from datetime import date
 
-from cicloai.rag.category_rules_rag_service import CategoryDetectionPromptData, CategoryRulesRagService
+from cicloai.rag.category_rules_rag_service import (
+    CategoryDetectionPromptData,
+    CategoryRulesRagService,
+)
 
 
 NO_DETERMINADA = "NO_DETERMINADA"
@@ -32,7 +35,11 @@ BASE_DETECTED_CATEGORIES = {
     "Cicloturista Damas",
 }
 
-FEDERATED_DETECTED_CATEGORIES = {f"Federado {category}" for category in BASE_DETECTED_CATEGORIES if category.startswith("Master ")}
+FEDERATED_DETECTED_CATEGORIES = {
+    f"Federado {category}"
+    for category in BASE_DETECTED_CATEGORIES
+    if category.startswith("Master ")
+}
 FEDERATED_DETECTED_CATEGORIES.update(
     {
         "Federado Sub 15",
@@ -93,7 +100,7 @@ class CategoryDetectionService:
         age = self._calculate_age(birth_date=birth_date, reference_date=reference_date)
         if age < 0:
             return NO_DETERMINADA
-        
+
         print(
             "[CicloAI][CategoryDetectionService.detectCategory] detector_input="
             f"{{birth_date={birth_date.isoformat()}, requested_category={declared_category}, "
@@ -111,12 +118,15 @@ class CategoryDetectionService:
                 date_of_race=reference_date.isoformat(),
             )
         )
-        print( f"raw_category={raw_category}", flush=True )
+        print(f"raw_category={raw_category}", flush=True)
         return self._clean_category(raw_category)
 
     def _calculate_age(self, *, birth_date: date, reference_date: date) -> int:
         years = reference_date.year - birth_date.year
-        has_not_had_birthday = (reference_date.month, reference_date.day) < (birth_date.month, birth_date.day)
+        has_not_had_birthday = (reference_date.month, reference_date.day) < (
+            birth_date.month,
+            birth_date.day,
+        )
         return years - 1 if has_not_had_birthday else years
 
     def _clean_category(self, response: str | None) -> str:
@@ -164,7 +174,9 @@ class CategoryDetectionService:
 
         candidate = re.sub(r"\s*\([^)]*\)", "", candidate_without_age_range).strip()
         lowered_candidate = candidate.lower()
-        if lowered_candidate.startswith("federado ") or lowered_candidate.startswith("federados "):
+        if lowered_candidate.startswith("federado ") or lowered_candidate.startswith(
+            "federados "
+        ):
             parts = candidate.split(maxsplit=1)
             candidate = f"Federado {parts[1]}" if len(parts) > 1 else "Federado"
 

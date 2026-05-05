@@ -3,7 +3,9 @@ from __future__ import annotations
 import unicodedata
 from typing import Literal
 
-AgentIntent = Literal["rag_answer", "start_single_registration", "start_bulk_registration"]
+AgentIntent = Literal[
+    "rag_answer", "start_single_registration", "start_bulk_registration"
+]
 
 
 class IntentDetectionService:
@@ -31,10 +33,14 @@ class IntentDetectionService:
         normalized = self._normalize(message)
         if any(self._normalize(phrase) in normalized for phrase in self._bulk_phrases):
             return "start_bulk_registration"
-        if any(self._normalize(phrase) in normalized for phrase in self._single_phrases):
+        if any(
+            self._normalize(phrase) in normalized for phrase in self._single_phrases
+        ):
             return "start_single_registration"
         return "rag_answer"
 
     def _normalize(self, value: str) -> str:
         text = unicodedata.normalize("NFKD", value.lower())
-        return "".join(character for character in text if not unicodedata.combining(character))
+        return "".join(
+            character for character in text if not unicodedata.combining(character)
+        )

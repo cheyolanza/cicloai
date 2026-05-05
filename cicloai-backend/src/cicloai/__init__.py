@@ -1,2 +1,1 @@
 """CicloAI application package."""
-

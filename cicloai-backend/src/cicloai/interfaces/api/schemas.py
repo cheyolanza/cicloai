@@ -370,5 +370,7 @@ class AgentChatUiActionResponse(BaseModel):
 class AgentChatResponse(BaseModel):
     answer: str
     sources: list[AgentChatSourceResponse] = Field(default_factory=list)
-    intent: Literal["rag_answer", "start_single_registration", "start_bulk_registration"]
+    intent: Literal[
+        "rag_answer", "start_single_registration", "start_bulk_registration"
+    ]
     ui_action: AgentChatUiActionResponse | None = None

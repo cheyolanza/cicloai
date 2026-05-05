@@ -40,7 +40,9 @@ class GoogleVisionOcrService:
 
     def extract_text(self, image_path: Path) -> str:
         if not image_path.exists() or not image_path.is_file():
-            raise GoogleVisionOcrProcessingError("El archivo del comprobante no existe.")
+            raise GoogleVisionOcrProcessingError(
+                "El archivo del comprobante no existe."
+            )
 
         credentials_path = self._settings.google_application_credentials
         if not credentials_path or not Path(credentials_path).exists():
@@ -64,7 +66,9 @@ class GoogleVisionOcrService:
             )
             response.raise_for_status()
         except requests.RequestException as exc:
-            logger.warning("Google Vision OCR request failed: %s", exc.__class__.__name__)
+            logger.warning(
+                "Google Vision OCR request failed: %s", exc.__class__.__name__
+            )
             raise GoogleVisionOcrProcessingError(
                 "No se pudo procesar el comprobante con Google Vision OCR."
             ) from exc
@@ -76,7 +80,9 @@ class GoogleVisionOcrService:
             credentials, _project_id = google.auth.default(scopes=list(self._SCOPES))
             credentials.refresh(google.auth.transport.requests.Request())
         except Exception as exc:
-            logger.warning("Google Vision OCR credentials failed: %s", exc.__class__.__name__)
+            logger.warning(
+                "Google Vision OCR credentials failed: %s", exc.__class__.__name__
+            )
             raise GoogleVisionOcrConfigurationError(
                 "Google OCR no está configurado correctamente. Verifique GOOGLE_APPLICATION_CREDENTIALS."
             ) from exc
@@ -110,7 +116,9 @@ class GoogleVisionOcrService:
 
         if "error" in first_response:
             logger.warning("Google Vision OCR returned an error response.")
-            raise GoogleVisionOcrProcessingError("No se pudo procesar el comprobante con Google Vision OCR.")
+            raise GoogleVisionOcrProcessingError(
+                "No se pudo procesar el comprobante con Google Vision OCR."
+            )
 
         annotation = first_response.get("fullTextAnnotation")
         if not isinstance(annotation, dict):

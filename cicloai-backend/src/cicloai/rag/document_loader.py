@@ -30,7 +30,10 @@ class DocumentLoader:
                 documents.append(
                     LoadedDocument(
                         text=path.read_text(encoding="utf-8"),
-                        metadata={"source_file": path.name, "document_type": path.suffix.lower().lstrip(".")},
+                        metadata={
+                            "source_file": path.name,
+                            "document_type": path.suffix.lower().lstrip("."),
+                        },
                     )
                 )
             elif path.suffix.lower() == ".pdf":
@@ -49,7 +52,11 @@ class DocumentLoader:
                         documents.append(
                             LoadedDocument(
                                 text=text,
-                                metadata={"source_file": path.name, "document_type": "pdf", "page": str(index)},
+                                metadata={
+                                    "source_file": path.name,
+                                    "document_type": "pdf",
+                                    "page": str(index),
+                                },
                             )
                         )
 

@@ -43,7 +43,9 @@ class BikerSearchService:
         statement = (
             select(CompetitionBiker, BikeRace)
             .join(BikeRace, BikeRace.id == CompetitionBiker.race_id, isouter=True)
-            .where(func.upper(CompetitionBiker.full_name).like(f"%{normalized.upper()}%"))
+            .where(
+                func.upper(CompetitionBiker.full_name).like(f"%{normalized.upper()}%")
+            )
             .order_by(func.upper(CompetitionBiker.full_name).asc())
             .limit(limit)
         )
@@ -57,7 +59,9 @@ class BikerSearchService:
                 cellphone=None,
                 team_name=biker.bike_team_name,
                 category=biker.detected_category,
-                last_registered_race=LastRegisteredRace(id=race.id, name=race.name) if race else None,
+                last_registered_race=LastRegisteredRace(id=race.id, name=race.name)
+                if race
+                else None,
             )
             for biker, race in self._db.execute(statement).all()
         ]

@@ -38,7 +38,10 @@ class TextSplitter:
                         TextChunk(
                             chunk_id=f"{source}:{document.metadata.get('page', '0')}:{chunk_number}",
                             text=chunk_text,
-                            metadata={**document.metadata, "chunk_id": f"{source}:{document.metadata.get('page', '0')}:{chunk_number}"},
+                            metadata={
+                                **document.metadata,
+                                "chunk_id": f"{source}:{document.metadata.get('page', '0')}:{chunk_number}",
+                            },
                         )
                     )
                 start += self._chunk_size - self._overlap

@@ -35,7 +35,9 @@ class JsonDocumentRepository:
         return json.loads(self.storage_path.read_text(encoding="utf-8"))
 
     def _dump(self, payload: dict) -> None:
-        self.storage_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        self.storage_path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
     @staticmethod
     def _to_document(payload: dict) -> Document:
@@ -45,4 +47,3 @@ class JsonDocumentRepository:
             metadata=payload.get("metadata", {}),
             created_at=datetime.fromisoformat(payload["created_at"]),
         )
-

@@ -15,19 +15,30 @@ class BikerLookupAction(Base):
 
     __tablename__ = "biker_lookup_actions"
 
-    id: Mapped[PythonUUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[PythonUUID] = mapped_column(
+        PostgresUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
     competition_biker_id: Mapped[PythonUUID] = mapped_column(
-        PostgresUUID(as_uuid=True), ForeignKey("competition_bikers.id", ondelete="RESTRICT"), nullable=False
+        PostgresUUID(as_uuid=True),
+        ForeignKey("competition_bikers.id", ondelete="RESTRICT"),
+        nullable=False,
     )
     bike_race_id: Mapped[PythonUUID | None] = mapped_column(
-        PostgresUUID(as_uuid=True), ForeignKey("bike_races.id", ondelete="SET NULL"), nullable=True
+        PostgresUUID(as_uuid=True),
+        ForeignKey("bike_races.id", ondelete="SET NULL"),
+        nullable=True,
     )
     searched_name: Mapped[str] = mapped_column(String(150), nullable=False)
     previous_team_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
     new_team_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
     action_type: Mapped[str] = mapped_column(String(50), nullable=False)
     status: Mapped[str] = mapped_column(String(30), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
     )

@@ -140,7 +140,9 @@ class RegistrationReview:
             birth_date=date.fromisoformat(payload["birth_date"]),
             gender=payload.get("gender", "hombre"),
             requested_category=payload["requested_category"],
-            category_id=UUID(payload["category_id"]) if payload.get("category_id") else None,
+            category_id=UUID(payload["category_id"])
+            if payload.get("category_id")
+            else None,
             detected_category=payload["detected_category"],
             bike_team_name=payload["bike_team_name"],
             payment_id=UUID(payload["payment_id"]),
@@ -153,7 +155,9 @@ class RegistrationReview:
             payment_extracted_amount=payload.get("payment_extracted_amount") or None,
             payment_currency=payload.get("payment_currency", "BOB"),
             payment_transaction_id=payload.get("payment_transaction_id") or None,
-            payment_date=date.fromisoformat(payload["payment_date"]) if payload.get("payment_date") else None,
+            payment_date=date.fromisoformat(payload["payment_date"])
+            if payload.get("payment_date")
+            else None,
             payment_bank_name=payload.get("payment_bank_name") or None,
             category_message=payload["category_message"],
             rules_source=payload["rules_source"],
@@ -169,11 +173,19 @@ class BulkExcelService:
     without pretending to process binary spreadsheets.
     """
 
-    REQUIRED_COLUMNS = ("DNI", "Nombre Completo", "Categoria", "Fecha Nacimiento", "Genero")
+    REQUIRED_COLUMNS = (
+        "DNI",
+        "Nombre Completo",
+        "Categoria",
+        "Fecha Nacimiento",
+        "Genero",
+    )
 
     def parse(self, filename: str, file_bytes: bytes) -> list[BulkBikerInput]:
         if not filename.lower().endswith(".csv"):
-            raise ValueError("Por ahora la plantilla debe subirse en formato CSV compatible con Excel.")
+            raise ValueError(
+                "Por ahora la plantilla debe subirse en formato CSV compatible con Excel."
+            )
 
         try:
             content = file_bytes.decode("utf-8-sig")
@@ -182,9 +194,13 @@ class BulkExcelService:
 
         reader = csv.DictReader(StringIO(content))
         headers = tuple(reader.fieldnames or ())
-        missing_columns = [column for column in self.REQUIRED_COLUMNS if column not in headers]
+        missing_columns = [
+            column for column in self.REQUIRED_COLUMNS if column not in headers
+        ]
         if missing_columns:
-            raise ValueError(f"Faltan columnas obligatorias: {', '.join(missing_columns)}.")
+            raise ValueError(
+                f"Faltan columnas obligatorias: {', '.join(missing_columns)}."
+            )
 
         competitors: list[BulkBikerInput] = []
         for row_number, row in enumerate(reader, start=2):
@@ -192,13 +208,24 @@ class BulkExcelService:
             full_name = (row.get("Nombre Completo") or "").strip()
             requested_category = (row.get("Categoria") or "").strip()
             birth_date_value = (row.get("Fecha Nacimiento") or "").strip()
-            gender = self._normalize_gender((row.get("Genero") or "").strip(), row_number)
+            gender = self._normalize_gender(
+                (row.get("Genero") or "").strip(), row_number
+            )
 
-            if not dni or not full_name or not requested_category or not birth_date_value:
-                raise ValueError(f"La fila {row_number} tiene datos obligatorios incompletos.")
+            if (
+                not dni
+                or not full_name
+                or not requested_category
+                or not birth_date_value
+            ):
+                raise ValueError(
+                    f"La fila {row_number} tiene datos obligatorios incompletos."
+                )
 
             if not dni.isdigit() or len(dni) != 7:
-                raise ValueError(f"La fila {row_number} tiene un DNI inválido. Debe contener 7 dígitos.")
+                raise ValueError(
+                    f"La fila {row_number} tiene un DNI inválido. Debe contener 7 dígitos."
+                )
 
             birth_date = self._parse_birth_date(birth_date_value, row_number)
 
@@ -244,7 +271,9 @@ class BulkExcelService:
     def _normalize_gender(self, value: str, row_number: int) -> str:
         normalized = value.strip().capitalize()
         if normalized not in {"Masculino", "Femenino"}:
-            raise ValueError(f"La fila {row_number} tiene un género inválido. Usa Masculino o Femenino.")
+            raise ValueError(
+                f"La fila {row_number} tiene un género inválido. Usa Masculino o Femenino."
+            )
         return normalized
 
 
@@ -266,14 +295,20 @@ class RegistrationService:
         self._payment_ocr = payment_ocr
         self._payment_validator = payment_validator
 
-    def build_first_race_review(self, registration: NewBikerRegistrationInput) -> RegistrationReview:
+    def build_first_race_review(
+        self, registration: NewBikerRegistrationInput
+    ) -> RegistrationReview:
         race = self._get_active_race()
         self._validate_identity(registration)
         self._validate_team(registration.bike_team_name)
         reference_date = race.date_of_race or date.today()
-        age = self._calculate_age(birth_date=registration.birth_date, reference_date=reference_date)
+        age = self._calculate_age(
+            birth_date=registration.birth_date, reference_date=reference_date
+        )
 
-        payment_ocr_result = self._payment_ocr.analyze_payment_proof(registration.payment_proof_path)
+        payment_ocr_result = self._payment_ocr.analyze_payment_proof(
+            registration.payment_proof_path
+        )
         payment_result = self._payment_validator.validate_payment_proof(
             race=race,
             ocr_result=payment_ocr_result,
@@ -295,7 +330,9 @@ class RegistrationService:
             self._db.commit()
         except IntegrityError as exc:
             self._db.rollback()
-            raise ValueError("El id de transacción ya fue registrado previamente.") from exc
+            raise ValueError(
+                "El id de transacción ya fue registrado previamente."
+            ) from exc
 
         return RegistrationReview(
             race_id=race.id,
@@ -318,7 +355,9 @@ class RegistrationService:
             payment_provider=payment_result.provider,
             payment_extracted_text=payment_result.extracted_text,
             payment_expected_amount=str(payment_result.expected_amount),
-            payment_extracted_amount=str(payment_result.extracted_amount) if payment_result.extracted_amount else None,
+            payment_extracted_amount=str(payment_result.extracted_amount)
+            if payment_result.extracted_amount
+            else None,
             payment_currency=payment_result.currency,
             payment_transaction_id=payment_result.id_transaction,
             payment_date=payment_result.payment_date,
@@ -327,7 +366,9 @@ class RegistrationService:
             rules_source=category_result.rules_source,
         )
 
-    def register_bulk_from_template(self, filename: str, file_bytes: bytes) -> BulkRegistrationResult:
+    def register_bulk_from_template(
+        self, filename: str, file_bytes: bytes
+    ) -> BulkRegistrationResult:
         race = self._get_active_race()
         competitors = BulkExcelService().parse(filename=filename, file_bytes=file_bytes)
         self._ensure_bulk_file_has_no_duplicates(competitors)
@@ -375,7 +416,9 @@ class RegistrationService:
             self._db.commit()
         except IntegrityError as exc:
             self._db.rollback()
-            raise ValueError("La plantilla contiene competidores que ya están inscritos.") from exc
+            raise ValueError(
+                "La plantilla contiene competidores que ya están inscritos."
+            ) from exc
 
         inserted = len(bikers)
         unit_cost = int(race.cost)
@@ -393,7 +436,9 @@ class RegistrationService:
     def register_from_review(self, review: RegistrationReview) -> CompetitionBiker:
         self._ensure_not_registered(review)
         if review.payment_status != "validated":
-            raise ValueError("El pago no fue validado. Sube otro comprobante antes de confirmar la inscripción.")
+            raise ValueError(
+                "El pago no fue validado. Sube otro comprobante antes de confirmar la inscripción."
+            )
 
         biker = CompetitionBiker(
             race_id=review.race_id,
@@ -422,14 +467,19 @@ class RegistrationService:
             raise
         except IntegrityError as exc:
             self._db.rollback()
-            raise ValueError("El ciclista ya está registrado para esta carrera.") from exc
+            raise ValueError(
+                "El ciclista ya está registrado para esta carrera."
+            ) from exc
 
         self._db.refresh(biker)
         return biker
 
     def _calculate_age(self, *, birth_date: date, reference_date: date) -> int:
         years = reference_date.year - birth_date.year
-        has_not_had_birthday = (reference_date.month, reference_date.day) < (birth_date.month, birth_date.day)
+        has_not_had_birthday = (reference_date.month, reference_date.day) < (
+            birth_date.month,
+            birth_date.day,
+        )
         return years - 1 if has_not_had_birthday else years
 
     def _normalize_competition_gender(self, value: str) -> str:
@@ -491,11 +541,19 @@ class RegistrationService:
                 Category.age_from <= age,
                 or_(Category.age_to.is_(None), Category.age_to >= age),
                 or_(
-                    and_(Category.born_from <= birth_year, Category.born_to >= birth_year),
-                    and_(Category.born_from >= birth_year, Category.born_to <= birth_year),
+                    and_(
+                        Category.born_from <= birth_year, Category.born_to >= birth_year
+                    ),
+                    and_(
+                        Category.born_from >= birth_year, Category.born_to <= birth_year
+                    ),
                 ),
             )
-            .order_by(Category.age_from.desc(), Category.age_to.asc().nulls_last(), func.upper(Category.name).asc())
+            .order_by(
+                Category.age_from.desc(),
+                Category.age_to.asc().nulls_last(),
+                func.upper(Category.name).asc(),
+            )
             .limit(1)
         )
         category = self._db.execute(statement).scalar_one_or_none()
@@ -531,7 +589,9 @@ class RegistrationService:
             full_name=review.full_name,
         )
 
-    def _ensure_competitor_not_registered(self, race_id: UUID, dni: str, full_name: str) -> None:
+    def _ensure_competitor_not_registered(
+        self, race_id: UUID, dni: str, full_name: str
+    ) -> None:
         normalized_name = full_name.strip().upper()
         statement = select(CompetitionBiker).where(
             CompetitionBiker.race_id == race_id,
@@ -546,20 +606,30 @@ class RegistrationService:
             return
 
         if existing.dni == dni:
-            raise ValueError("La persona ya está inscrita para esta carrera con el mismo DNI.")
+            raise ValueError(
+                "La persona ya está inscrita para esta carrera con el mismo DNI."
+            )
 
-        raise ValueError("La persona ya está inscrita para esta carrera con el mismo nombre.")
+        raise ValueError(
+            "La persona ya está inscrita para esta carrera con el mismo nombre."
+        )
 
-    def _ensure_bulk_file_has_no_duplicates(self, competitors: list[BulkBikerInput]) -> None:
+    def _ensure_bulk_file_has_no_duplicates(
+        self, competitors: list[BulkBikerInput]
+    ) -> None:
         seen_dni: set[str] = set()
         seen_names: set[str] = set()
 
         for competitor in competitors:
             normalized_name = competitor.full_name.strip().upper()
             if competitor.dni in seen_dni:
-                raise ValueError(f"La plantilla contiene DNI duplicado: {competitor.dni}.")
+                raise ValueError(
+                    f"La plantilla contiene DNI duplicado: {competitor.dni}."
+                )
             if normalized_name in seen_names:
-                raise ValueError(f"La plantilla contiene nombre duplicado: {competitor.full_name}.")
+                raise ValueError(
+                    f"La plantilla contiene nombre duplicado: {competitor.full_name}."
+                )
 
             seen_dni.add(competitor.dni)
             seen_names.add(normalized_name)
@@ -580,7 +650,17 @@ class RegistrationService:
         if not registration.dni.isdigit() or len(registration.dni) != 7:
             raise ValueError("El DNI debe contener exactamente 7 dígitos.")
 
-        if registration.dni_extension.upper() not in {"BE", "CH", "CO", "LP", "OR", "PA", "PO", "SC", "TJ"}:
+        if registration.dni_extension.upper() not in {
+            "BE",
+            "CH",
+            "CO",
+            "LP",
+            "OR",
+            "PA",
+            "PO",
+            "SC",
+            "TJ",
+        }:
             raise ValueError("La extensión del DNI no es válida.")
 
         if not registration.full_name.strip():

@@ -33,7 +33,11 @@ class TokenService:
             "exp": int(expires_at.timestamp()),
             "token_type": "bearer",
         }
-        token = jwt.encode(payload, self._settings.jwt_secret_key, algorithm=self._settings.jwt_algorithm)
+        token = jwt.encode(
+            payload,
+            self._settings.jwt_secret_key,
+            algorithm=self._settings.jwt_algorithm,
+        )
         return token, self._settings.jwt_expire_seconds
 
     def create_admin_user_token(self, username: str) -> tuple[str, int]:
@@ -46,13 +50,24 @@ class TokenService:
             "exp": int(expires_at.timestamp()),
             "token_type": "bearer",
         }
-        token = jwt.encode(payload, self._settings.jwt_secret_key, algorithm=self._settings.jwt_algorithm)
+        token = jwt.encode(
+            payload,
+            self._settings.jwt_secret_key,
+            algorithm=self._settings.jwt_algorithm,
+        )
         return token, self._settings.jwt_expire_seconds
 
     def decode_public_user_token(self, token: str) -> TokenPayload:
-        payload = jwt.decode(token, self._settings.jwt_secret_key, algorithms=[self._settings.jwt_algorithm])
+        payload = jwt.decode(
+            token,
+            self._settings.jwt_secret_key,
+            algorithms=[self._settings.jwt_algorithm],
+        )
 
-        if payload.get("token_type") != "bearer" or payload.get("scope") != "public_user":
+        if (
+            payload.get("token_type") != "bearer"
+            or payload.get("scope") != "public_user"
+        ):
             raise InvalidTokenError("Invalid token claims")
 
         return {
@@ -64,9 +79,16 @@ class TokenService:
         }
 
     def decode_admin_user_token(self, token: str) -> TokenPayload:
-        payload = jwt.decode(token, self._settings.jwt_secret_key, algorithms=[self._settings.jwt_algorithm])
+        payload = jwt.decode(
+            token,
+            self._settings.jwt_secret_key,
+            algorithms=[self._settings.jwt_algorithm],
+        )
 
-        if payload.get("token_type") != "bearer" or payload.get("scope") != "admin_user":
+        if (
+            payload.get("token_type") != "bearer"
+            or payload.get("scope") != "admin_user"
+        ):
             raise InvalidTokenError("Invalid token claims")
 
         return {
@@ -95,12 +117,23 @@ class TokenService:
             "token_type": "review",
             "review": review_payload,
         }
-        return jwt.encode(payload, self._settings.jwt_secret_key, algorithm=self._settings.jwt_algorithm)
+        return jwt.encode(
+            payload,
+            self._settings.jwt_secret_key,
+            algorithm=self._settings.jwt_algorithm,
+        )
 
     def decode_registration_review_token(self, token: str) -> dict[str, Any]:
-        payload = jwt.decode(token, self._settings.jwt_secret_key, algorithms=[self._settings.jwt_algorithm])
+        payload = jwt.decode(
+            token,
+            self._settings.jwt_secret_key,
+            algorithms=[self._settings.jwt_algorithm],
+        )
 
-        if payload.get("token_type") != "review" or payload.get("scope") != "registration_review":
+        if (
+            payload.get("token_type") != "review"
+            or payload.get("scope") != "registration_review"
+        ):
             raise InvalidTokenError("Invalid review token claims")
 
         review = payload.get("review")

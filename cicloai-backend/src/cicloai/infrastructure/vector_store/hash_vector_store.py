@@ -78,10 +78,14 @@ class HashVectorStore:
 
     @staticmethod
     def _cosine(left: list[float], right: list[float]) -> float:
-        return sum(left_value * right_value for left_value, right_value in zip(left, right))
+        return sum(
+            left_value * right_value for left_value, right_value in zip(left, right)
+        )
 
     def _load(self) -> list[dict]:
         return json.loads(self.storage_path.read_text(encoding="utf-8"))
 
     def _dump(self, records: list[dict]) -> None:
-        self.storage_path.write_text(json.dumps(records, ensure_ascii=False, indent=2), encoding="utf-8")
+        self.storage_path.write_text(
+            json.dumps(records, ensure_ascii=False, indent=2), encoding="utf-8"
+        )

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# ruff: noqa: E402
+
 import os
 
 os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
@@ -58,7 +60,9 @@ class VectorStore:
 
     def query(self, question: str, top_k: int) -> list[dict]:
         if self._collection.count() == 0:
-            raise KnowledgeBaseNotIndexedError("La base de conocimiento no está indexada. Ejecute python -m cicloai.rag.index_documents")
+            raise KnowledgeBaseNotIndexedError(
+                "La base de conocimiento no está indexada. Ejecute python -m cicloai.rag.index_documents"
+            )
 
         embedding = self._embed([question])[0]
         result = self._collection.query(query_embeddings=[embedding], n_results=top_k)
@@ -95,5 +99,7 @@ class VectorStore:
     def _embed(self, texts: list[str]) -> list[list[float]]:
         if not self._config.openai_api_key:
             raise RuntimeError("OPENAI_API_KEY no está configurada.")
-        response = self._openai.embeddings.create(model=self._config.embedding_model, input=texts)
+        response = self._openai.embeddings.create(
+            model=self._config.embedding_model, input=texts
+        )
         return [item.embedding for item in response.data]

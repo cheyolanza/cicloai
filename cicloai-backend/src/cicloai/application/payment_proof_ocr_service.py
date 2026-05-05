@@ -38,7 +38,9 @@ class PaymentProofOcrService:
 
     _SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
-    def __init__(self, settings: Settings, google_vision: GoogleVisionOcrService | None = None) -> None:
+    def __init__(
+        self, settings: Settings, google_vision: GoogleVisionOcrService | None = None
+    ) -> None:
         self._settings = settings
         self._google_vision = google_vision or GoogleVisionOcrService(settings)
 

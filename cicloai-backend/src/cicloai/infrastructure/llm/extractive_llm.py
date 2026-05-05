@@ -44,8 +44,9 @@ class ExtractiveLLMClient:
         for separator in separators:
             next_sentences: list[str] = []
             for sentence in sentences:
-                next_sentences.extend(part.strip() for part in sentence.split(separator) if part.strip())
+                next_sentences.extend(
+                    part.strip() for part in sentence.split(separator) if part.strip()
+                )
             sentences = next_sentences
 
         return sentences
-

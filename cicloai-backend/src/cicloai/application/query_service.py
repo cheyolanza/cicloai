@@ -7,7 +7,9 @@ from cicloai.domain.ports import LLMClient, VectorIndex
 
 
 class QueryService:
-    def __init__(self, vector_index: VectorIndex, llm_client: LLMClient, default_top_k: int = 3) -> None:
+    def __init__(
+        self, vector_index: VectorIndex, llm_client: LLMClient, default_top_k: int = 3
+    ) -> None:
         self.vector_index = vector_index
         self.llm_client = llm_client
         self.default_top_k = default_top_k
@@ -29,4 +31,3 @@ class QueryService:
             model=self.llm_client.model_name,
             latency_ms=round(latency_ms, 2),
         )
-

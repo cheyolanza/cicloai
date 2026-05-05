@@ -46,7 +46,11 @@ class BikerLookupActionService:
 
         previous_team_name = biker.bike_team_name
         normalized_new_team = team.name
-        action_type = "team_updated" if (previous_team_name or "").upper() != normalized_new_team.upper() else "lookup_found"
+        action_type = (
+            "team_updated"
+            if (previous_team_name or "").upper() != normalized_new_team.upper()
+            else "lookup_found"
+        )
 
         biker.bike_team_name = normalized_new_team
         self._db.add(

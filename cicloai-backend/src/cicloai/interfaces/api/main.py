@@ -18,12 +18,21 @@ from jwt import InvalidTokenError
 
 from cicloai.application.health_service import HealthService
 from cicloai.application.admin_auth_service import AdminAuthService
-from cicloai.application.admin_service import AdminBikerInput, AdminCategoryInput, AdminRaceInput, AdminService
+from cicloai.application.admin_service import (
+    AdminBikerInput,
+    AdminCategoryInput,
+    AdminRaceInput,
+    AdminService,
+)
 from cicloai.application.ingest_service import IngestService
 from cicloai.application.intent_detection_service import IntentDetectionService
 from cicloai.application.query_service import QueryService
 from cicloai.application.recaptcha_service import RecaptchaVerificationService
-from cicloai.application.registration_service import NewBikerRegistrationInput, RegistrationReview, RegistrationService
+from cicloai.application.registration_service import (
+    NewBikerRegistrationInput,
+    RegistrationReview,
+    RegistrationService,
+)
 from cicloai.application.google_vision_ocr_service import (
     GoogleVisionOcrConfigurationError,
     GoogleVisionOcrProcessingError,
@@ -159,15 +168,23 @@ def health(service: HealthService = Depends(health_service)) -> dict:
 
 
 @app.post("/ingest", response_model=IngestResponse)
-def ingest(payload: IngestRequest, service: IngestService = Depends(ingest_service)) -> dict:
+def ingest(
+    payload: IngestRequest, service: IngestService = Depends(ingest_service)
+) -> dict:
     try:
-        return service.ingest(text=payload.text, metadata=payload.metadata, document_id=payload.document_id)
+        return service.ingest(
+            text=payload.text,
+            metadata=payload.metadata,
+            document_id=payload.document_id,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/query", response_model=QueryResponse)
-def query(payload: QueryRequest, service: QueryService = Depends(query_service)) -> QueryResponse:
+def query(
+    payload: QueryRequest, service: QueryService = Depends(query_service)
+) -> QueryResponse:
     try:
         answer = service.query(question=payload.question, top_k=payload.top_k)
     except ValueError as exc:
@@ -231,7 +248,9 @@ def agent_chat(
         answer=answer.answer,
         intent="rag_answer",
         sources=[
-            AgentChatSourceResponse(source_file=source.source_file, chunk_id=source.chunk_id)
+            AgentChatSourceResponse(
+                source_file=source.source_file, chunk_id=source.chunk_id
+            )
             for source in answer.sources
         ],
         ui_action=AgentChatUiActionResponse(type="NONE"),
@@ -283,11 +302,15 @@ def admin_login(
         raise HTTPException(status_code=401, detail="Username o password incorrectos.")
 
     access_token, expires_in = tokens.create_admin_user_token(user.username)
-    return AdminLoginResponse(access_token=access_token, expires_in=expires_in, username=user.username)
+    return AdminLoginResponse(
+        access_token=access_token, expires_in=expires_in, username=user.username
+    )
 
 
 @app.get("/api/v1/admin/me", response_model=AdminSessionResponse)
-def admin_session(current_admin: TokenPayload = Depends(get_current_admin_from_token)) -> AdminSessionResponse:
+def admin_session(
+    current_admin: TokenPayload = Depends(get_current_admin_from_token),
+) -> AdminSessionResponse:
     return AdminSessionResponse(username=current_admin["sub"])
 
 
@@ -374,7 +397,10 @@ def admin_list_races(
     service: AdminService = Depends(admin_service),
     _current_admin: TokenPayload = Depends(get_current_admin_from_token),
 ) -> list[AdminRaceResponse]:
-    return [_admin_race_response(race, registered_bikers=total) for race, total in service.list_races()]
+    return [
+        _admin_race_response(race, registered_bikers=total)
+        for race, total in service.list_races()
+    ]
 
 
 @app.post("/api/v1/admin/races", response_model=AdminRaceResponse)
@@ -425,7 +451,9 @@ def admin_list_categories(
     service: AdminService = Depends(admin_service),
     _current_admin: TokenPayload = Depends(get_current_admin_from_token),
 ) -> list[AdminCategoryResponse]:
-    return [_admin_category_response(category) for category in service.list_categories()]
+    return [
+        _admin_category_response(category) for category in service.list_categories()
+    ]
 
 
 @app.post("/api/v1/admin/categories", response_model=AdminCategoryResponse)
@@ -457,7 +485,10 @@ def admin_update_category(
     return _admin_category_response(service.category_record(category.id))
 
 
-@app.patch("/api/v1/admin/categories/{category_id}/status", response_model=AdminCategoryResponse)
+@app.patch(
+    "/api/v1/admin/categories/{category_id}/status",
+    response_model=AdminCategoryResponse,
+)
 def admin_update_category_status(
     category_id: UUID,
     payload: AdminCategoryStatusRequest,
@@ -500,7 +531,10 @@ def _admin_biker_input(payload: AdminBikerRequest) -> AdminBikerInput:
 def _calculate_age(birth_date: date, reference_date: date | None = None) -> int:
     reference_date = reference_date or date.today()
     years = reference_date.year - birth_date.year
-    has_not_had_birthday = (reference_date.month, reference_date.day) < (birth_date.month, birth_date.day)
+    has_not_had_birthday = (reference_date.month, reference_date.day) < (
+        birth_date.month,
+        birth_date.day,
+    )
     return years - 1 if has_not_had_birthday else years
 
 
@@ -525,7 +559,9 @@ def _admin_biker_response(biker, payment=None) -> AdminBikerResponse:
         created_at=biker.created_at,
         updated_at=biker.updated_at,
         payment_id=payment_id,
-        payment_proof_url=f"/api/v1/admin/payments/{payment_id}/proof" if payment_id else None,
+        payment_proof_url=f"/api/v1/admin/payments/{payment_id}/proof"
+        if payment_id
+        else None,
     )
 
 
@@ -555,7 +591,9 @@ def _biker_export_cell_value(biker, field: str) -> str:
 
 
 def _build_biker_export_html(bikers, fields: list[str]) -> str:
-    headers = "".join(f"<th>{html.escape(BIKER_EXPORT_COLUMNS[field])}</th>" for field in fields)
+    headers = "".join(
+        f"<th>{html.escape(BIKER_EXPORT_COLUMNS[field])}</th>" for field in fields
+    )
     rows = []
     for biker in bikers:
         color = _biker_export_row_color(biker.detected_category)
@@ -577,7 +615,11 @@ def _build_biker_export_html(bikers, fields: list[str]) -> str:
 def _admin_payment_response(record) -> AdminPaymentResponse:
     payment = record.payment
     bikers = record.bikers
-    enabled_bikers = [biker for biker in bikers if _normalize_admin_biker_status(biker.status) == "habilitado"]
+    enabled_bikers = [
+        biker
+        for biker in bikers
+        if _normalize_admin_biker_status(biker.status) == "habilitado"
+    ]
     payment_kind = "grupal" if payment.payment_group_id is not None else "individual"
     can_validate = len(bikers) > 0 and len(enabled_bikers) < len(bikers)
     if payment_kind == "grupal" and len(bikers) <= 1:
@@ -592,7 +634,9 @@ def _admin_payment_response(record) -> AdminPaymentResponse:
         created_at=payment.created_at,
         transaction_id=payment.id_transaction,
         extracted_amount=payment.extracted_amount,
-        validated_amount=payment.expected_amount if payment.status == "validated" else None,
+        validated_amount=payment.expected_amount
+        if payment.status == "validated"
+        else None,
         expected_amount=payment.expected_amount,
         currency=payment.currency,
         total_collected=record.total_collected,
@@ -616,13 +660,17 @@ def _admin_payment_response(record) -> AdminPaymentResponse:
 @app.get("/api/v1/admin/races/{race_id}/bikers/export")
 def admin_export_race_bikers(
     race_id: UUID,
-    fields: list[str] = Query(default=["full_name", "detected_category", "age", "bike_team_name"]),
+    fields: list[str] = Query(
+        default=["full_name", "detected_category", "age", "bike_team_name"]
+    ),
     service: AdminService = Depends(admin_service),
     _current_admin: TokenPayload = Depends(get_current_admin_from_token),
 ) -> StreamingResponse:
     selected_fields = [field for field in fields if field in BIKER_EXPORT_COLUMNS]
     if not selected_fields:
-        raise HTTPException(status_code=400, detail="Selecciona al menos una columna para exportar.")
+        raise HTTPException(
+            status_code=400, detail="Selecciona al menos una columna para exportar."
+        )
 
     try:
         bikers = service.list_bikers_for_export(race_id)
@@ -633,7 +681,9 @@ def admin_export_race_bikers(
     return StreamingResponse(
         iter([content.encode("utf-8")]),
         media_type="application/vnd.ms-excel; charset=utf-8",
-        headers={"Content-Disposition": 'attachment; filename="corredores-cicloai.xls"'},
+        headers={
+            "Content-Disposition": 'attachment; filename="corredores-cicloai.xls"'
+        },
     )
 
 
@@ -643,7 +693,15 @@ def admin_list_race_bikers(
     page: int = Query(default=0, ge=0),
     page_size: int = Query(default=50, ge=1, le=100),
     search: str = Query(default=""),
-    sort_by: Literal["full_name", "gender", "age", "bike_team_name", "detected_category", "created_at", "status"] = "created_at",
+    sort_by: Literal[
+        "full_name",
+        "gender",
+        "age",
+        "bike_team_name",
+        "detected_category",
+        "created_at",
+        "status",
+    ] = "created_at",
     sort_direction: Literal["asc", "desc"] = "desc",
     service: AdminService = Depends(admin_service),
     _current_admin: TokenPayload = Depends(get_current_admin_from_token),
@@ -661,7 +719,9 @@ def admin_list_race_bikers(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return AdminBikerListResponse(
-        items=[_admin_biker_response(biker, payment) for biker, payment in result.items],
+        items=[
+            _admin_biker_response(biker, payment) for biker, payment in result.items
+        ],
         total=result.total,
         page=page,
         page_size=page_size,
@@ -676,7 +736,9 @@ def admin_list_payments(
     return [_admin_payment_response(record) for record in service.list_payments()]
 
 
-@app.post("/api/v1/admin/payments/{payment_id}/validate", response_model=AdminPaymentResponse)
+@app.post(
+    "/api/v1/admin/payments/{payment_id}/validate", response_model=AdminPaymentResponse
+)
 def admin_validate_payment(
     payment_id: UUID,
     service: AdminService = Depends(admin_service),
@@ -746,10 +808,14 @@ async def verify_captcha_and_issue_token(
         raise HTTPException(status_code=400, detail="Captcha inválido o expirado")
 
     access_token, expires_in = tokens.create_public_user_token()
-    return TokenResponse(access_token=access_token, token_type="bearer", expires_in=expires_in)
+    return TokenResponse(
+        access_token=access_token, token_type="bearer", expires_in=expires_in
+    )
 
 
-@app.get("/api/v1/bike-races/active", response_model=BikeRaceResponse | NoActiveRaceResponse)
+@app.get(
+    "/api/v1/bike-races/active", response_model=BikeRaceResponse | NoActiveRaceResponse
+)
 def active_bike_race(
     service: BikeRaceService = Depends(bike_race_service),
     _current_user: TokenPayload = Depends(get_current_user_from_token),
@@ -800,7 +866,10 @@ def active_bike_teams(
     ]
 
 
-@app.get("/api/v1/bikers/search", response_model=BikerSearchFoundResponse | BikerSearchNotFoundResponse)
+@app.get(
+    "/api/v1/bikers/search",
+    response_model=BikerSearchFoundResponse | BikerSearchNotFoundResponse,
+)
 def search_bikers(
     name: str,
     service: BikerSearchService = Depends(biker_search_service),
@@ -845,10 +914,15 @@ def active_cycling_teams(
     service: CyclingTeamService = Depends(cycling_team_service),
     _current_user: TokenPayload = Depends(get_current_user_from_token),
 ) -> list[CyclingTeamResponse]:
-    return [CyclingTeamResponse(id=team.id, name=team.name) for team in service.list_active_teams()]
+    return [
+        CyclingTeamResponse(id=team.id, name=team.name)
+        for team in service.list_active_teams()
+    ]
 
 
-@app.post("/api/v1/bikers/{biker_id}/lookup-action", response_model=BikerLookupActionResponse)
+@app.post(
+    "/api/v1/bikers/{biker_id}/lookup-action", response_model=BikerLookupActionResponse
+)
 def register_biker_lookup_action(
     biker_id: UUID,
     payload: BikerLookupActionRequest,
@@ -884,7 +958,9 @@ def _persist_payment_proof(upload: UploadFile, file_bytes: bytes) -> Path:
     original_name = upload.filename or ""
     extension = Path(original_name).suffix.lower()
     if extension not in SUPPORTED_PAYMENT_PROOF_EXTENSIONS:
-        raise HTTPException(status_code=400, detail="Formato de archivo no soportado para OCR.")
+        raise HTTPException(
+            status_code=400, detail="Formato de archivo no soportado para OCR."
+        )
 
     storage_dir = settings().payment_proofs_storage_dir
     storage_dir.mkdir(parents=True, exist_ok=True)
@@ -893,8 +969,13 @@ def _persist_payment_proof(upload: UploadFile, file_bytes: bytes) -> Path:
     return target_path
 
 
-@app.post("/api/v1/registrations/first-race/validate", response_model=RegistrationReviewResponse)
-@app.post("/api/v1/registrations/first-race/review", response_model=RegistrationReviewResponse)
+@app.post(
+    "/api/v1/registrations/first-race/validate",
+    response_model=RegistrationReviewResponse,
+)
+@app.post(
+    "/api/v1/registrations/first-race/review", response_model=RegistrationReviewResponse
+)
 async def review_first_race_registration(
     dni: str = Form(...),
     dni_extension: str = Form(...),
@@ -914,7 +995,10 @@ async def review_first_race_registration(
     try:
         parsed_birth_date = date.fromisoformat(birth_date)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail="La fecha de nacimiento debe tener formato YYYY-MM-DD.") from exc
+        raise HTTPException(
+            status_code=400,
+            detail="La fecha de nacimiento debe tener formato YYYY-MM-DD.",
+        ) from exc
 
     proof_bytes = await payment_proof.read()
     proof_path = _persist_payment_proof(payment_proof, proof_bytes)
@@ -966,7 +1050,10 @@ async def review_first_race_registration(
             dni,
             proof_path,
         )
-        raise HTTPException(status_code=503, detail="No se pudo procesar el comprobante con Google Vision OCR.") from exc
+        raise HTTPException(
+            status_code=503,
+            detail="No se pudo procesar el comprobante con Google Vision OCR.",
+        ) from exc
     except ValueError as exc:
         logger.warning(
             "POST /api/v1/registrations/first-race/review business error dni=%s proof_path=%s detail=%s",
@@ -984,10 +1071,15 @@ async def review_first_race_registration(
         raise
 
     review_token = tokens.create_registration_review_token(review.to_token_payload())
-    return RegistrationReviewResponse(review_token=review_token, **review.to_token_payload())
+    return RegistrationReviewResponse(
+        review_token=review_token, **review.to_token_payload()
+    )
 
 
-@app.post("/api/v1/registrations/first-race/confirm", response_model=RegistrationConfirmResponse)
+@app.post(
+    "/api/v1/registrations/first-race/confirm",
+    response_model=RegistrationConfirmResponse,
+)
 def confirm_first_race_registration(
     payload: RegistrationConfirmRequest,
     service: RegistrationService = Depends(registration_service),
@@ -997,10 +1089,14 @@ def confirm_first_race_registration(
     """Persist the biker only after Human-in-the-Loop confirmation."""
 
     try:
-        review = RegistrationReview.from_token_payload(tokens.decode_registration_review_token(payload.review_token))
+        review = RegistrationReview.from_token_payload(
+            tokens.decode_registration_review_token(payload.review_token)
+        )
         biker = service.register_from_review(review)
     except InvalidTokenError as exc:
-        raise HTTPException(status_code=400, detail="La revisión de inscripción expiró o no es válida.") from exc
+        raise HTTPException(
+            status_code=400, detail="La revisión de inscripción expiró o no es válida."
+        ) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -1026,7 +1122,9 @@ def download_bulk_registration_template(
     return StreamingResponse(
         iter([template.getvalue()]),
         media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": 'attachment; filename="plantilla-inscripcion-masiva-cicloai.csv"'},
+        headers={
+            "Content-Disposition": 'attachment; filename="plantilla-inscripcion-masiva-cicloai.csv"'
+        },
     )
 
 

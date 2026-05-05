@@ -20,30 +20,58 @@ class CompetitionBiker(Base):
 
     __tablename__ = "competition_bikers"
     __table_args__ = (
-        UniqueConstraint("race_id", "dni", "dni_extension", name="uq_competition_bikers_race_identity"),
+        UniqueConstraint(
+            "race_id",
+            "dni",
+            "dni_extension",
+            name="uq_competition_bikers_race_identity",
+        ),
     )
 
-    id: Mapped[PythonUUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[PythonUUID] = mapped_column(
+        PostgresUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
     race_id: Mapped[PythonUUID] = mapped_column(
-        PostgresUUID(as_uuid=True), ForeignKey("bike_races.id", ondelete="RESTRICT"), nullable=False, index=True
+        PostgresUUID(as_uuid=True),
+        ForeignKey("bike_races.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
     )
     category_id: Mapped[PythonUUID | None] = mapped_column(
-        PostgresUUID(as_uuid=True), ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True
+        PostgresUUID(as_uuid=True),
+        ForeignKey("categories.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
-    payment_group_id: Mapped[PythonUUID | None] = mapped_column(PostgresUUID(as_uuid=True), nullable=True, index=True)
+    payment_group_id: Mapped[PythonUUID | None] = mapped_column(
+        PostgresUUID(as_uuid=True), nullable=True, index=True
+    )
     full_name: Mapped[str] = mapped_column(String(150), nullable=False)
     email: Mapped[str] = mapped_column(String(254), nullable=False)
     dni: Mapped[str] = mapped_column(String(7), nullable=False, index=True)
     dni_extension: Mapped[str] = mapped_column(String(2), nullable=False)
     birth_date: Mapped[date] = mapped_column(Date, nullable=False)
-    gender: Mapped[str] = mapped_column(String(10), nullable=False, default="hombre", server_default="hombre", index=True)
+    gender: Mapped[str] = mapped_column(
+        String(10),
+        nullable=False,
+        default="hombre",
+        server_default="hombre",
+        index=True,
+    )
     requested_category: Mapped[str] = mapped_column(String(30), nullable=False)
     detected_category: Mapped[str] = mapped_column(String(30), nullable=False)
     bike_team_name: Mapped[str] = mapped_column(String(100), nullable=False)
     payment_status: Mapped[str] = mapped_column(String(30), nullable=False)
     payment_reference: Mapped[str] = mapped_column(String(80), nullable=False)
-    status: Mapped[str] = mapped_column(String(30), nullable=False, default="registered", index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="registered", index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
     )

@@ -4,7 +4,9 @@ from cicloai.domain.ports import DocumentRepository, VectorIndex
 
 
 class HealthService:
-    def __init__(self, repository: DocumentRepository, vector_index: VectorIndex) -> None:
+    def __init__(
+        self, repository: DocumentRepository, vector_index: VectorIndex
+    ) -> None:
         self.repository = repository
         self.vector_index = vector_index
 

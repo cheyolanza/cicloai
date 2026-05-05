@@ -36,4 +36,3 @@ class RAGAnswer:
     sources: list[RetrievedChunk]
     model: str
     latency_ms: float
-

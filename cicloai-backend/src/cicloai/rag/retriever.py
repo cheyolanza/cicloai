@@ -16,7 +16,9 @@ class Retriever:
     def retrieve(self, question: str) -> list[dict]:
         rows = self._vector_store.query(question, top_k=self._config.top_k)
         rows = self._with_neighbor_chunks(rows)
-        filtered_rows = [row for row in rows if row["score"] >= self._config.similarity_threshold]
+        filtered_rows = [
+            row for row in rows if row["score"] >= self._config.similarity_threshold
+        ]
         if filtered_rows:
             return filtered_rows
 
@@ -43,7 +45,11 @@ class Retriever:
             neighbor_ids.append(f"{prefix}{index + 1}")
 
         existing_ids = {str(row["chunk_id"]) for row in rows}
-        missing_neighbor_ids = [chunk_id for chunk_id in dict.fromkeys(neighbor_ids) if chunk_id not in existing_ids]
+        missing_neighbor_ids = [
+            chunk_id
+            for chunk_id in dict.fromkeys(neighbor_ids)
+            if chunk_id not in existing_ids
+        ]
         neighbors = self._vector_store.get_chunks_by_ids(missing_neighbor_ids)
 
         combined = rows + neighbors

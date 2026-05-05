@@ -35,7 +35,9 @@ class TextChunker:
                 continue
 
             text = " ".join(window)
-            digest = sha256(f"{document.document_id}:{index}:{text}".encode("utf-8")).hexdigest()[:16]
+            digest = sha256(
+                f"{document.document_id}:{index}:{text}".encode("utf-8")
+            ).hexdigest()[:16]
             chunks.append(
                 Chunk(
                     chunk_id=f"chk_{digest}",
@@ -49,4 +51,3 @@ class TextChunker:
                 break
 
         return chunks
-

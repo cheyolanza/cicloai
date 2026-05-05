@@ -40,7 +40,9 @@ class RecaptchaVerificationService:
             reasons=[] if valid else ["MOCK_INVALID_TOKEN_OR_ACTION"],
         )
 
-    def _create_assessment(self, token: str, expected_action: str) -> RecaptchaAssessment:
+    def _create_assessment(
+        self, token: str, expected_action: str
+    ) -> RecaptchaAssessment:
         try:
             from google.cloud import recaptchaenterprise_v1
         except ImportError as exc:
@@ -50,9 +52,13 @@ class RecaptchaVerificationService:
 
         client = recaptchaenterprise_v1.RecaptchaEnterpriseServiceClient()
         project_path = f"projects/{self._settings.recaptcha_project_id}"
-        event = recaptchaenterprise_v1.Event(token=token, site_key=self._settings.recaptcha_site_key)
+        event = recaptchaenterprise_v1.Event(
+            token=token, site_key=self._settings.recaptcha_site_key
+        )
         assessment = recaptchaenterprise_v1.Assessment(event=event)
-        request = recaptchaenterprise_v1.CreateAssessmentRequest(parent=project_path, assessment=assessment)
+        request = recaptchaenterprise_v1.CreateAssessmentRequest(
+            parent=project_path, assessment=assessment
+        )
         response = client.create_assessment(request=request)
 
         token_properties = response.token_properties
@@ -66,7 +72,10 @@ class RecaptchaVerificationService:
 
         score = response.risk_analysis.score
         reasons = [str(reason) for reason in response.risk_analysis.reasons]
-        valid = token_properties.action == expected_action and score >= self._settings.recaptcha_min_score
+        valid = (
+            token_properties.action == expected_action
+            and score >= self._settings.recaptcha_min_score
+        )
 
         if token_properties.action != expected_action:
             reasons.append("ACTION_MISMATCH")
@@ -74,4 +83,6 @@ class RecaptchaVerificationService:
         if score < self._settings.recaptcha_min_score:
             reasons.append("LOW_SCORE")
 
-        return RecaptchaAssessment(valid=valid, action=token_properties.action, score=score, reasons=reasons)
+        return RecaptchaAssessment(
+            valid=valid, action=token_properties.action, score=score, reasons=reasons
+        )

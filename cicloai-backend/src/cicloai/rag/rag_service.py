@@ -28,7 +28,9 @@ class RagAnswer:
 class RagService:
     """Orchestrates retrieval, guarded prompting and OpenAI completion."""
 
-    def __init__(self, config: RagConfig, retriever: Retriever, prompt_builder: PromptBuilder) -> None:
+    def __init__(
+        self, config: RagConfig, retriever: Retriever, prompt_builder: PromptBuilder
+    ) -> None:
         self._config = config
         self._retriever = retriever
         self._prompt_builder = prompt_builder
@@ -52,7 +54,10 @@ class RagService:
         return RagAnswer(
             answer=answer,
             sources=[
-                RagSource(source_file=row["metadata"].get("source_file", ""), chunk_id=row["metadata"].get("chunk_id"))
+                RagSource(
+                    source_file=row["metadata"].get("source_file", ""),
+                    chunk_id=row["metadata"].get("chunk_id"),
+                )
                 for row in context_rows
             ],
         )
@@ -62,11 +67,46 @@ class RagService:
         """Cheap domain gate used before invoking embeddings or the LLM."""
         normalized = question.lower()
         keywords = (
-            "convocatoria", "lugar", "fecha", "hora", "categoria", "categoría", "edad", "modalidad",
-            "distancia", "inscripcion", "inscripción", "costo", "regla", "uniforme", "premiacion",
-            "premiación", "seguridad", "requisito", "participacion", "participación", "dorsal",
-            "carrera", "ubicacion", "ubicación", "recojo", "participante", "participantes", "mínimo",
-            "minimo", "mínima", "minima", "club", "clubes", "control", "accidente", "accidentes",
-            "bioseguridad", "casco", "audífonos", "audifonos", "parlantes",
+            "convocatoria",
+            "lugar",
+            "fecha",
+            "hora",
+            "categoria",
+            "categoría",
+            "edad",
+            "modalidad",
+            "distancia",
+            "inscripcion",
+            "inscripción",
+            "costo",
+            "regla",
+            "uniforme",
+            "premiacion",
+            "premiación",
+            "seguridad",
+            "requisito",
+            "participacion",
+            "participación",
+            "dorsal",
+            "carrera",
+            "ubicacion",
+            "ubicación",
+            "recojo",
+            "participante",
+            "participantes",
+            "mínimo",
+            "minimo",
+            "mínima",
+            "minima",
+            "club",
+            "clubes",
+            "control",
+            "accidente",
+            "accidentes",
+            "bioseguridad",
+            "casco",
+            "audífonos",
+            "audifonos",
+            "parlantes",
         )
         return any(keyword in normalized for keyword in keywords)

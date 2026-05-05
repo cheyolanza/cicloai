@@ -1,2 +1,1 @@
 """Domain layer for CicloAI."""
-

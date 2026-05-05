@@ -15,7 +15,9 @@ SEED_RACE_YEAR = 2026
 SEED_RACE_COST = 60
 SEED_RACE_COST_DECIMAL = Decimal("60.00")
 SEED_RACE_CURRENCY = "BOB"
-SEED_PAYMENT_QR_IMAGE = Path(__file__).resolve().parents[4] / "assets" / "payment_qr_2_2026_apertura.jpeg"
+SEED_PAYMENT_QR_IMAGE = (
+    Path(__file__).resolve().parents[4] / "assets" / "payment_qr_2_2026_apertura.jpeg"
+)
 SEED_TEAM_NAMES = (
     "INDEPENDIENTE",
     "Team Gladiadores",
@@ -38,9 +40,15 @@ def seed_bike_races() -> None:
     db = SessionLocal()
     try:
         existing = db.execute(
-            select(BikeRace).where(BikeRace.name == SEED_RACE_NAME, BikeRace.year == SEED_RACE_YEAR)
+            select(BikeRace).where(
+                BikeRace.name == SEED_RACE_NAME, BikeRace.year == SEED_RACE_YEAR
+            )
         ).scalar_one_or_none()
-        qr_image = SEED_PAYMENT_QR_IMAGE.read_bytes() if SEED_PAYMENT_QR_IMAGE.exists() else None
+        qr_image = (
+            SEED_PAYMENT_QR_IMAGE.read_bytes()
+            if SEED_PAYMENT_QR_IMAGE.exists()
+            else None
+        )
 
         if existing is not None:
             existing.race_cost = SEED_RACE_COST
@@ -74,7 +82,9 @@ def seed_bike_teams() -> None:
     db = SessionLocal()
     try:
         for team_name in SEED_TEAM_NAMES:
-            existing = db.execute(select(BikeTeam).where(BikeTeam.name == team_name)).scalar_one_or_none()
+            existing = db.execute(
+                select(BikeTeam).where(BikeTeam.name == team_name)
+            ).scalar_one_or_none()
 
             if existing is None:
                 db.add(BikeTeam(name=team_name, active=True))
@@ -89,7 +99,9 @@ def seed_cycling_teams() -> None:
     db = SessionLocal()
     try:
         for team_name in SEED_CYCLING_TEAM_NAMES:
-            existing = db.execute(select(CyclingTeam).where(CyclingTeam.name == team_name)).scalar_one_or_none()
+            existing = db.execute(
+                select(CyclingTeam).where(CyclingTeam.name == team_name)
+            ).scalar_one_or_none()
             if existing is None:
                 db.add(CyclingTeam(name=team_name, status="active"))
             else:

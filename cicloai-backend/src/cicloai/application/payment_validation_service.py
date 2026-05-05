@@ -102,7 +102,11 @@ class PaymentValidationService:
         )
 
         id_transaction = extracted.id_transaction
-        if status == "validated" and id_transaction and self._transaction_exists(id_transaction):
+        if (
+            status == "validated"
+            and id_transaction
+            and self._transaction_exists(id_transaction)
+        ):
             status = "rejected"
             message = "El id de transacción ya fue registrado previamente."
             logger.warning(
@@ -214,7 +218,9 @@ class PaymentValidationService:
     def attach_to_biker(self, payment_id: UUID, competition_biker_id: UUID) -> None:
         payment = self._db.get(RaceQrPayment, payment_id)
         if payment is None:
-            raise ValueError("No se encontró la validación de pago asociada a esta inscripción.")
+            raise ValueError(
+                "No se encontró la validación de pago asociada a esta inscripción."
+            )
         if payment.status != "validated":
             raise ValueError("El pago asociado no está validado.")
 
@@ -248,18 +254,31 @@ class PaymentValidationService:
                 f"El monto del comprobante ({extracted.amount} {currency}) no coincide con el monto esperado ({expected_amount} {currency}).",
             )
         if not extracted.id_transaction:
-            return "rejected", "No se pudo identificar el id de transacción del comprobante."
+            return (
+                "rejected",
+                "No se pudo identificar el id de transacción del comprobante.",
+            )
         if not extracted.bank_name:
             return "rejected", "No se pudo identificar el banco del comprobante."
         if extracted.payment_date is None:
-            return "rejected", "No se pudo identificar una fecha válida en el comprobante."
+            return (
+                "rejected",
+                "No se pudo identificar una fecha válida en el comprobante.",
+            )
         if extracted.payment_date != today:
             return "rejected", "La fecha del comprobante no corresponde al día de hoy."
 
-        return "validated", "Pago validado correctamente: monto, fecha e id de transacción coinciden."
+        return (
+            "validated",
+            "Pago validado correctamente: monto, fecha e id de transacción coinciden.",
+        )
 
     def _transaction_exists(self, id_transaction: str) -> bool:
-        statement = select(RaceQrPayment.id).where(RaceQrPayment.id_transaction == id_transaction).limit(1)
+        statement = (
+            select(RaceQrPayment.id)
+            .where(RaceQrPayment.id_transaction == id_transaction)
+            .limit(1)
+        )
         return self._db.execute(statement).scalar_one_or_none() is not None
 
     @staticmethod
@@ -269,7 +288,9 @@ class PaymentValidationService:
     @staticmethod
     def _extract_amount(text: str) -> Decimal | None:
         amount_keywords = r"(?:MONTO|IMPORTE|TOTAL|PAGADO|PAGO|BS\.?|BOB)"
-        pattern = re.compile(rf"{amount_keywords}[^\d]{{0,30}}(\d{{1,5}}(?:[.,]\d{{1,2}})?)")
+        pattern = re.compile(
+            rf"{amount_keywords}[^\d]{{0,30}}(\d{{1,5}}(?:[.,]\d{{1,2}})?)"
+        )
         for match in pattern.finditer(text):
             amount = PaymentValidationService._to_decimal(match.group(1))
             if amount is not None:

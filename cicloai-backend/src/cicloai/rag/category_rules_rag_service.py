@@ -27,7 +27,9 @@ class CategoryRulesRagService:
     registration use case so tests can replace it with a mock.
     """
 
-    def __init__(self, settings: Settings, prompt_builder: PromptBuilder | None = None) -> None:
+    def __init__(
+        self, settings: Settings, prompt_builder: PromptBuilder | None = None
+    ) -> None:
         self._settings = settings
         self._prompt_builder = prompt_builder or PromptBuilder()
 
@@ -50,7 +52,9 @@ class CategoryRulesRagService:
             gender=data.gender,
             date_of_race=data.date_of_race,
         )
-        response = OpenAI(api_key=self._settings.openai_api_key).chat.completions.create(
+        response = OpenAI(
+            api_key=self._settings.openai_api_key
+        ).chat.completions.create(
             model=self._settings.openai_model,
             messages=messages,
             temperature=0,
@@ -70,18 +74,28 @@ class CategoryRulesRagService:
             key=lambda item: item[0],
             reverse=True,
         )
-        selected = [chunk for score, chunk in scored_chunks if score > 0][: self._settings.rag_top_k]
+        selected = [chunk for score, chunk in scored_chunks if score > 0][
+            : self._settings.rag_top_k
+        ]
         if not selected:
             selected = chunks[: self._settings.rag_top_k]
         return "\n\n".join(selected)
 
     def _split_text(self, text: str) -> list[str]:
-        paragraphs = [paragraph.strip() for paragraph in re.split(r"\n\s*\n", text) if paragraph.strip()]
+        paragraphs = [
+            paragraph.strip()
+            for paragraph in re.split(r"\n\s*\n", text)
+            if paragraph.strip()
+        ]
         if paragraphs:
             return paragraphs
 
         chunk_size = 1200
-        return [text[index : index + chunk_size] for index in range(0, len(text), chunk_size) if text[index : index + chunk_size].strip()]
+        return [
+            text[index : index + chunk_size]
+            for index in range(0, len(text), chunk_size)
+            if text[index : index + chunk_size].strip()
+        ]
 
     def _keywords_for(self, data: CategoryDetectionPromptData) -> tuple[str, ...]:
         declared = data.declared_category.strip().lower()

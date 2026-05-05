@@ -14,14 +14,19 @@ Reglas obligatorias:
 
 
 class PromptBuilder:
-    def build_messages(self, question: str, context_rows: list[dict]) -> list[dict[str, str]]:
+    def build_messages(
+        self, question: str, context_rows: list[dict]
+    ) -> list[dict[str, str]]:
         context = "\n\n".join(
             f"[{row['metadata'].get('source_file')}::{row['metadata'].get('chunk_id')}]\n{row['text']}"
             for row in context_rows
         )
         return [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": f"Contexto recuperado:\n{context}\n\nPregunta del usuario:\n{question}"},
+            {
+                "role": "user",
+                "content": f"Contexto recuperado:\n{context}\n\nPregunta del usuario:\n{question}",
+            },
         ]
 
     def build_category_detection_messages(

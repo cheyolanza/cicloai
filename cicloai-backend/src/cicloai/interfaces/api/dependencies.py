@@ -28,7 +28,9 @@ from cicloai.application.token_service import TokenPayload, TokenService
 from cicloai.infrastructure.config import Settings, get_settings
 from cicloai.infrastructure.database.session import SessionLocal
 from cicloai.infrastructure.llm.extractive_llm import ExtractiveLLMClient
-from cicloai.infrastructure.repositories.json_document_repository import JsonDocumentRepository
+from cicloai.infrastructure.repositories.json_document_repository import (
+    JsonDocumentRepository,
+)
 from cicloai.infrastructure.vector_store.hash_vector_store import HashVectorStore
 from cicloai.rag.config import build_rag_config
 from cicloai.rag.prompt_builder import PromptBuilder
@@ -53,7 +55,9 @@ def document_repository() -> JsonDocumentRepository:
 @lru_cache
 def vector_index() -> HashVectorStore:
     config = settings()
-    return HashVectorStore(config.storage_dir / "vectors.json", dimensions=config.vector_dimensions)
+    return HashVectorStore(
+        config.storage_dir / "vectors.json", dimensions=config.vector_dimensions
+    )
 
 
 @lru_cache
@@ -67,7 +71,9 @@ def ingest_service() -> IngestService:
 
 
 def query_service() -> QueryService:
-    return QueryService(vector_index(), ExtractiveLLMClient(), default_top_k=settings().top_k)
+    return QueryService(
+        vector_index(), ExtractiveLLMClient(), default_top_k=settings().top_k
+    )
 
 
 def health_service() -> HealthService:
@@ -139,7 +145,9 @@ def payment_ocr_service() -> PaymentProofOcrService:
     return PaymentProofOcrService(settings())
 
 
-def payment_validation_service(db: Session = Depends(get_db)) -> PaymentValidationService:
+def payment_validation_service(
+    db: Session = Depends(get_db),
+) -> PaymentValidationService:
     return PaymentValidationService(db)
 
 
@@ -158,14 +166,18 @@ def get_current_user_from_token(
     if credentials is None or credentials.scheme.lower() != "bearer":
         from fastapi import HTTPException
 
-        raise HTTPException(status_code=401, detail="Operación no permitida. El usuario debe validarse.")
+        raise HTTPException(
+            status_code=401, detail="Operación no permitida. El usuario debe validarse."
+        )
 
     try:
         return service.decode_public_user_token(credentials.credentials)
     except InvalidTokenError as exc:
         from fastapi import HTTPException
 
-        raise HTTPException(status_code=401, detail="Operación no permitida. El usuario debe validarse.") from exc
+        raise HTTPException(
+            status_code=401, detail="Operación no permitida. El usuario debe validarse."
+        ) from exc
 
 
 def get_current_admin_from_token(
@@ -175,11 +187,15 @@ def get_current_admin_from_token(
     if credentials is None or credentials.scheme.lower() != "bearer":
         from fastapi import HTTPException
 
-        raise HTTPException(status_code=401, detail="Credenciales de administrador requeridas.")
+        raise HTTPException(
+            status_code=401, detail="Credenciales de administrador requeridas."
+        )
 
     try:
         return service.decode_admin_user_token(credentials.credentials)
     except InvalidTokenError as exc:
         from fastapi import HTTPException
 
-        raise HTTPException(status_code=401, detail="Sesión de administrador inválida o expirada.") from exc
+        raise HTTPException(
+            status_code=401, detail="Sesión de administrador inválida o expirada."
+        ) from exc

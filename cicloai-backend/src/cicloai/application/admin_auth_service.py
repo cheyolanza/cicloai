@@ -16,7 +16,9 @@ PASSWORD_ITERATIONS = 260000
 
 def hash_password(password: str) -> str:
     salt = secrets.token_bytes(16)
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, PASSWORD_ITERATIONS)
+    digest = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), salt, PASSWORD_ITERATIONS
+    )
     encoded_salt = base64.b64encode(salt).decode("ascii")
     encoded_digest = base64.b64encode(digest).decode("ascii")
     return f"{PASSWORD_PREFIX}${PASSWORD_ITERATIONS}${encoded_salt}${encoded_digest}"
@@ -31,11 +33,15 @@ def verify_password(password: str, stored_password: str) -> bool:
     try:
         iterations = int(raw_iterations)
         salt = base64.b64decode(encoded_salt.encode("ascii"), validate=True)
-        expected_digest = base64.b64decode(encoded_digest.encode("ascii"), validate=True)
+        expected_digest = base64.b64decode(
+            encoded_digest.encode("ascii"), validate=True
+        )
     except (ValueError, TypeError):
         return False
 
-    actual_digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
+    actual_digest = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), salt, iterations
+    )
     return hmac.compare_digest(actual_digest, expected_digest)
 
 

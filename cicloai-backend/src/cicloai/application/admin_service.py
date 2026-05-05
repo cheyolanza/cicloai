@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
 from uuid import UUID
@@ -117,7 +117,9 @@ class AdminService:
             )
 
         total = self._db.execute(
-            select(func.count(CompetitionBiker.id)).where(CompetitionBiker.race_id == active_race.id)
+            select(func.count(CompetitionBiker.id)).where(
+                CompetitionBiker.race_id == active_race.id
+            )
         ).scalar_one()
         return AdminDashboardMetrics(
             active_race_id=active_race.id,
@@ -128,7 +130,9 @@ class AdminService:
     def list_races(self) -> list[tuple[BikeRace, int]]:
         statement = (
             select(BikeRace, func.count(CompetitionBiker.id))
-            .join(CompetitionBiker, CompetitionBiker.race_id == BikeRace.id, isouter=True)
+            .join(
+                CompetitionBiker, CompetitionBiker.race_id == BikeRace.id, isouter=True
+            )
             .group_by(BikeRace.id)
             .order_by(BikeRace.created_at.desc())
         )
@@ -142,7 +146,9 @@ class AdminService:
             name=race_input.name.strip(),
             location_name=race_input.location_name.strip(),
             location=race_input.location.strip() if race_input.location else None,
-            strava_map_html=race_input.strava_map_html.strip() if race_input.strava_map_html else None,
+            strava_map_html=race_input.strava_map_html.strip()
+            if race_input.strava_map_html
+            else None,
             year=race_input.year,
             date_of_race=race_input.date_of_race,
             status=race_input.status,
@@ -151,7 +157,9 @@ class AdminService:
             currency=race_input.currency,
         )
         self._db.add(race)
-        self._commit_or_raise("No se pudo crear la carrera. Verifica que no exista una carrera con el mismo nombre y gestión.")
+        self._commit_or_raise(
+            "No se pudo crear la carrera. Verifica que no exista una carrera con el mismo nombre y gestión."
+        )
         self._db.refresh(race)
         return race
 
@@ -163,7 +171,9 @@ class AdminService:
         race.name = race_input.name.strip()
         race.location_name = race_input.location_name.strip()
         race.location = race_input.location.strip() if race_input.location else None
-        race.strava_map_html = race_input.strava_map_html.strip() if race_input.strava_map_html else None
+        race.strava_map_html = (
+            race_input.strava_map_html.strip() if race_input.strava_map_html else None
+        )
         race.year = race_input.year
         race.date_of_race = race_input.date_of_race
         race.status = race_input.status
@@ -182,13 +192,22 @@ class AdminService:
         return race
 
     def list_categories(self) -> list[AdminCategoryRecord]:
-        statement = select(Category).order_by(func.upper(Category.name).asc(), Category.sex.asc())
+        statement = select(Category).order_by(
+            func.upper(Category.name).asc(), Category.sex.asc()
+        )
         categories = list(self._db.execute(statement).scalars().all())
-        return [AdminCategoryRecord(category=category, races=self._category_races(category.id)) for category in categories]
+        return [
+            AdminCategoryRecord(
+                category=category, races=self._category_races(category.id)
+            )
+            for category in categories
+        ]
 
     def category_record(self, category_id: UUID) -> AdminCategoryRecord:
         category = self._get_category(category_id)
-        return AdminCategoryRecord(category=category, races=self._category_races(category.id))
+        return AdminCategoryRecord(
+            category=category, races=self._category_races(category.id)
+        )
 
     def create_category(self, category_input: AdminCategoryInput) -> Category:
         self._validate_category_input(category_input)
@@ -212,11 +231,15 @@ class AdminService:
             raise
         except IntegrityError as exc:
             self._db.rollback()
-            raise ValueError("No se pudo crear la categoría. Verifica que no exista una categoría con el mismo nombre, sexo y tipo.") from exc
+            raise ValueError(
+                "No se pudo crear la categoría. Verifica que no exista una categoría con el mismo nombre, sexo y tipo."
+            ) from exc
         self._db.refresh(category)
         return category
 
-    def update_category(self, category_id: UUID, category_input: AdminCategoryInput) -> Category:
+    def update_category(
+        self, category_id: UUID, category_input: AdminCategoryInput
+    ) -> Category:
         self._validate_category_input(category_input)
         category = self._get_category(category_id)
         category.name = category_input.name.strip()
@@ -278,7 +301,9 @@ class AdminService:
                 )
             )
 
-        total = self._db.execute(select(func.count(CompetitionBiker.id)).where(*base_filters)).scalar_one()
+        total = self._db.execute(
+            select(func.count(CompetitionBiker.id)).where(*base_filters)
+        ).scalar_one()
         statement = (
             select(CompetitionBiker, RaceQrPayment)
             .join(
@@ -287,27 +312,40 @@ class AdminService:
                     RaceQrPayment.competition_biker_id == CompetitionBiker.id,
                     and_(
                         CompetitionBiker.payment_group_id.is_not(None),
-                        RaceQrPayment.payment_group_id == CompetitionBiker.payment_group_id,
+                        RaceQrPayment.payment_group_id
+                        == CompetitionBiker.payment_group_id,
                     ),
                 ),
                 isouter=True,
             )
             .where(*base_filters)
         )
-        statement = self._apply_biker_sort(statement, sort_by=sort_by, sort_direction=sort_direction)
+        statement = self._apply_biker_sort(
+            statement, sort_by=sort_by, sort_direction=sort_direction
+        )
         statement = statement.offset(page * page_size).limit(page_size)
-        return AdminBikerListResult(items=list(self._db.execute(statement).all()), total=int(total))
+        return AdminBikerListResult(
+            items=list(self._db.execute(statement).all()), total=int(total)
+        )
 
     def list_bikers_for_export(self, race_id: UUID) -> list[CompetitionBiker]:
         self._get_race(race_id)
         statement = (
             select(CompetitionBiker)
-            .where(CompetitionBiker.race_id == race_id, CompetitionBiker.status == "habilitado")
-            .order_by(func.upper(CompetitionBiker.full_name).asc(), func.upper(CompetitionBiker.detected_category).asc())
+            .where(
+                CompetitionBiker.race_id == race_id,
+                CompetitionBiker.status == "habilitado",
+            )
+            .order_by(
+                func.upper(CompetitionBiker.full_name).asc(),
+                func.upper(CompetitionBiker.detected_category).asc(),
+            )
         )
         return list(self._db.execute(statement).scalars().all())
 
-    def update_biker(self, biker_id: UUID, biker_input: AdminBikerInput) -> CompetitionBiker:
+    def update_biker(
+        self, biker_id: UUID, biker_input: AdminBikerInput
+    ) -> CompetitionBiker:
         self._validate_biker_input(biker_input)
         biker = self._get_biker(biker_id)
 
@@ -362,14 +400,20 @@ class AdminService:
             raise ValueError("El pago no tiene corredores asociados.")
 
         if payment.payment_group_id is None and len(bikers) != 1:
-            raise ValueError("El pago individual debe estar asociado a un solo corredor.")
+            raise ValueError(
+                "El pago individual debe estar asociado a un solo corredor."
+            )
 
         if payment.payment_group_id is not None:
             group_bikers = self._group_bikers(payment)
             if len(group_bikers) <= 1:
-                raise ValueError("El pago grupal debe estar asociado a más de un corredor.")
+                raise ValueError(
+                    "El pago grupal debe estar asociado a más de un corredor."
+                )
             if {biker.id for biker in group_bikers} != {biker.id for biker in bikers}:
-                raise ValueError("El pago grupal solo puede validarse para el grupo completo.")
+                raise ValueError(
+                    "El pago grupal solo puede validarse para el grupo completo."
+                )
             bikers = group_bikers
 
         payment.status = PAYMENT_VALIDATED_STATUS
@@ -399,7 +443,11 @@ class AdminService:
         return proof_path
 
     def _get_active_race(self) -> BikeRace | None:
-        statement = select(BikeRace).where(BikeRace.status == BikeRaceStatus.ACTIVE.value).limit(1)
+        statement = (
+            select(BikeRace)
+            .where(BikeRace.status == BikeRaceStatus.ACTIVE.value)
+            .limit(1)
+        )
         return self._db.execute(statement).scalar_one_or_none()
 
     def _get_race(self, race_id: UUID) -> BikeRace:
@@ -444,11 +492,15 @@ class AdminService:
             if int(existing_count) != len(unique_race_ids):
                 raise ValueError("Una o más carreras seleccionadas no existen.")
 
-        self._db.execute(delete(BikeRaceCategory).where(BikeRaceCategory.category_id == category_id))
-        self._db.add_all([
-            BikeRaceCategory(race_id=race_id, category_id=category_id)
-            for race_id in unique_race_ids
-        ])
+        self._db.execute(
+            delete(BikeRaceCategory).where(BikeRaceCategory.category_id == category_id)
+        )
+        self._db.add_all(
+            [
+                BikeRaceCategory(race_id=race_id, category_id=category_id)
+                for race_id in unique_race_ids
+            ]
+        )
 
     def _payment_bikers(self, payment: RaceQrPayment) -> list[CompetitionBiker]:
         if payment.payment_group_id is not None:
@@ -474,7 +526,9 @@ class AdminService:
     def _total_collected(self) -> Decimal:
         total = Decimal("0")
         payments = self._db.execute(
-            select(RaceQrPayment).where(RaceQrPayment.status == PAYMENT_VALIDATED_STATUS)
+            select(RaceQrPayment).where(
+                RaceQrPayment.status == PAYMENT_VALIDATED_STATUS
+            )
         ).scalars()
         for payment in payments:
             bikers = self._payment_bikers(payment)
@@ -482,11 +536,15 @@ class AdminService:
                 total += payment.expected_amount
         return total
 
-    def _ensure_single_active_race(self, status: str, race_id: UUID | None = None) -> None:
+    def _ensure_single_active_race(
+        self, status: str, race_id: UUID | None = None
+    ) -> None:
         if status != BikeRaceStatus.ACTIVE.value:
             return
 
-        statement = select(BikeRace.id).where(BikeRace.status == BikeRaceStatus.ACTIVE.value)
+        statement = select(BikeRace.id).where(
+            BikeRace.status == BikeRaceStatus.ACTIVE.value
+        )
         if race_id is not None:
             statement = statement.where(BikeRace.id != race_id)
 
@@ -500,7 +558,10 @@ class AdminService:
             raise ValueError("La ubicación de la carrera es obligatoria.")
         if race_input.year < 2000:
             raise ValueError("La gestión de la carrera no es válida.")
-        if race_input.status not in {BikeRaceStatus.ACTIVE.value, BikeRaceStatus.DEACTIVE.value}:
+        if race_input.status not in {
+            BikeRaceStatus.ACTIVE.value,
+            BikeRaceStatus.DEACTIVE.value,
+        }:
             raise ValueError("El estado de la carrera no es válido.")
         if race_input.currency not in {"BOB", "USD"}:
             raise ValueError("La moneda no es válida.")
@@ -517,7 +578,10 @@ class AdminService:
             raise ValueError("El tipo de categoría no es válido.")
         if category_input.age_from < 0:
             raise ValueError("La edad desde no puede ser negativa.")
-        if category_input.age_to is not None and category_input.age_to < category_input.age_from:
+        if (
+            category_input.age_to is not None
+            and category_input.age_to < category_input.age_from
+        ):
             raise ValueError("La edad hasta debe ser mayor o igual a la edad desde.")
         if category_input.born_from < 1900 or category_input.born_from > current_year:
             raise ValueError("El año de nacimiento desde no es válido.")
@@ -563,7 +627,11 @@ class AdminService:
         sort_direction: str,
     ) -> Select[tuple[CompetitionBiker, RaceQrPayment | None]]:
         if sort_by == "age":
-            order_column = CompetitionBiker.birth_date.desc() if sort_direction == "asc" else CompetitionBiker.birth_date.asc()
+            order_column = (
+                CompetitionBiker.birth_date.desc()
+                if sort_direction == "asc"
+                else CompetitionBiker.birth_date.asc()
+            )
             return statement.order_by(order_column, CompetitionBiker.full_name.asc())
 
         sort_columns = {
@@ -575,7 +643,9 @@ class AdminService:
             "status": CompetitionBiker.status,
         }
         order_column = sort_columns.get(sort_by, CompetitionBiker.created_at)
-        order_column = order_column.asc() if sort_direction == "asc" else order_column.desc()
+        order_column = (
+            order_column.asc() if sort_direction == "asc" else order_column.desc()
+        )
         return statement.order_by(order_column, CompetitionBiker.full_name.asc())
 
     def _commit_or_raise(self, message: str) -> None:

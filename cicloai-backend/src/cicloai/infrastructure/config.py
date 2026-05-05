@@ -24,7 +24,9 @@ class Settings:
     chunk_overlap: int = 25
     top_k: int = 3
     vector_dimensions: int = 384
-    database_url: str = "postgresql+psycopg2://cicloai_user:cicloai_pass@localhost:5432/cicloai-db"
+    database_url: str = (
+        "postgresql+psycopg2://cicloai_user:cicloai_pass@localhost:5432/cicloai-db"
+    )
     jwt_secret_key: str = "change-me-local-secret"
     jwt_algorithm: str = "HS256"
     jwt_expire_seconds: int = 3600
@@ -34,7 +36,9 @@ class Settings:
     recaptcha_site_key: str = "6LcYJMcsAAAAANnSzsP1VP4bJ86DKcGQzhVbZNO2"
     recaptcha_min_score: float = 0.5
     recaptcha_enable_mocks: bool = True
-    category_rules_pdf_path: Path = Path("assets/documents/category_rules/convocatoria.txt")
+    category_rules_pdf_path: Path = Path(
+        "assets/documents/category_rules/convocatoria.txt"
+    )
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
     openai_embedding_model: str = "text-embedding-3-small"
@@ -70,7 +74,9 @@ def build_database_url() -> str:
     db_user = os.getenv("DB_USER", "cicloai_user")
     db_password = os.getenv("DB_PASSWORD", "cicloai_pass_DB1")
     db_name = os.getenv("DB_NAME", "cicloai-db")
-    cloud_sql_connection_name = os.getenv("CLOUD_SQL_INSTANCE_CONNECTION_NAME", "").strip()
+    cloud_sql_connection_name = os.getenv(
+        "CLOUD_SQL_INSTANCE_CONNECTION_NAME", ""
+    ).strip()
 
     encoded_user = quote_plus(db_user)
     encoded_password = quote_plus(db_password)
@@ -98,7 +104,9 @@ def parse_cors_allowed_origins(raw_value: str | None) -> tuple[str, ...]:
     if not raw_value:
         return DEFAULT_CORS_ALLOWED_ORIGINS
 
-    origins = tuple(origin.strip().rstrip("/") for origin in raw_value.split(",") if origin.strip())
+    origins = tuple(
+        origin.strip().rstrip("/") for origin in raw_value.split(",") if origin.strip()
+    )
     return origins or DEFAULT_CORS_ALLOWED_ORIGINS
 
 
@@ -118,19 +126,31 @@ def get_settings() -> Settings:
         google_recaptcha_secret_key=os.getenv("GOOGLE_RECAPTCHA_SECRET_KEY", ""),
         enable_captcha_mock=os.getenv("ENABLE_CAPTCHA_MOCK", "true").lower() == "true",
         recaptcha_project_id=os.getenv("RECAPTCHA_PROJECT_ID", "ciclo-ai"),
-        recaptcha_site_key=os.getenv("RECAPTCHA_SITE_KEY", "6LcYJMcsAAAAANnSzsP1VP4bJ86DKcGQzhVbZNO2"),
+        recaptcha_site_key=os.getenv(
+            "RECAPTCHA_SITE_KEY", "6LcYJMcsAAAAANnSzsP1VP4bJ86DKcGQzhVbZNO2"
+        ),
         recaptcha_min_score=float(os.getenv("RECAPTCHA_MIN_SCORE", "0.5")),
-        recaptcha_enable_mocks=os.getenv("RECAPTCHA_ENABLE_MOCKS", "true").lower() == "true",
+        recaptcha_enable_mocks=os.getenv("RECAPTCHA_ENABLE_MOCKS", "true").lower()
+        == "true",
         category_rules_pdf_path=Path(
-            os.getenv("CATEGORY_RULES_PDF_PATH", "assets/documents/category_rules/convocatoria.txt")
+            os.getenv(
+                "CATEGORY_RULES_PDF_PATH",
+                "assets/documents/category_rules/convocatoria.txt",
+            )
         ),
         openai_api_key=os.getenv("OPENAI_API_KEY", ""),
         openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-        openai_embedding_model=os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"),
+        openai_embedding_model=os.getenv(
+            "OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"
+        ),
         rag_top_k=int(os.getenv("RAG_TOP_K", "5")),
         rag_similarity_threshold=float(os.getenv("RAG_SIMILARITY_THRESHOLD", "0.70")),
-        rag_documents_dir=Path(os.getenv("RAG_DOCUMENTS_DIR", "assets/documents/category_rules")),
-        rag_vector_store_dir=Path(os.getenv("RAG_VECTOR_STORE_DIR", "storage/vector_store")),
+        rag_documents_dir=Path(
+            os.getenv("RAG_DOCUMENTS_DIR", "assets/documents/category_rules")
+        ),
+        rag_vector_store_dir=Path(
+            os.getenv("RAG_VECTOR_STORE_DIR", "storage/vector_store")
+        ),
         rag_chunk_size=int(os.getenv("RAG_CHUNK_SIZE", "800")),
         rag_chunk_overlap=int(os.getenv("RAG_CHUNK_OVERLAP", "150")),
         rag_auto_index=os.getenv("RAG_AUTO_INDEX", "false").lower() == "true",
@@ -142,6 +162,10 @@ def get_settings() -> Settings:
             "GOOGLE_VISION_OCR_ENDPOINT",
             "https://vision.googleapis.com/v1/images:annotate",
         ),
-        payment_proofs_storage_dir=Path(os.getenv("PAYMENT_PROOFS_STORAGE_DIR", "assets/payments")),
-        cors_allowed_origins=parse_cors_allowed_origins(os.getenv("CORS_ALLOWED_ORIGINS")),
+        payment_proofs_storage_dir=Path(
+            os.getenv("PAYMENT_PROOFS_STORAGE_DIR", "assets/payments")
+        ),
+        cors_allowed_origins=parse_cors_allowed_origins(
+            os.getenv("CORS_ALLOWED_ORIGINS")
+        ),
     )

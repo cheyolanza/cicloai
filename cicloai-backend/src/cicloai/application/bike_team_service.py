@@ -17,5 +17,9 @@ class BikeTeamService:
         self._db = db
 
     def list_active_teams(self) -> list[BikeTeam]:
-        statement = select(BikeTeam).where(BikeTeam.active.is_(True)).order_by(func.upper(BikeTeam.name).asc())
+        statement = (
+            select(BikeTeam)
+            .where(BikeTeam.active.is_(True))
+            .order_by(func.upper(BikeTeam.name).asc())
+        )
         return list(self._db.execute(statement).scalars().all())
