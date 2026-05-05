@@ -11,6 +11,7 @@ interface ActiveBikeRaceResponse {
   name?: string;
   location_name?: string;
   location?: string | null;
+  strava_map_html?: string | null;
   year?: number;
   date_of_race?: string | null;
   status?: 'active' | 'deactive';
@@ -49,6 +50,7 @@ export const raceService: RaceService = {
       description: response.location_name
         ? `${response.location_name}${response.year ? ` - Gestion ${response.year}` : ''}`
         : undefined,
+      stravaMapHtml: response.strava_map_html ?? null,
       inscriptionPrice: response.cost ?? 0,
       currency: response.currency ?? 'BOB',
       paymentQrImage: response.qr_image ?? null,

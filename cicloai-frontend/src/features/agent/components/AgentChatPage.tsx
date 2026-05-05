@@ -57,6 +57,7 @@ export function AgentChatPage() {
               onNewUserSubmit={(registration) => void conversation.submitNewUser(registration)}
               onPaymentValidated={(proof) => void conversation.validatePayment(proof)}
               onRegistrationConfirm={() => void conversation.confirmRegistration()}
+              onPaymentRetry={() => conversation.retryPaymentUpload()}
             />
           )}
 

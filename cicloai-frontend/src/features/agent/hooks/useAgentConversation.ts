@@ -53,7 +53,7 @@ export function useAgentConversation() {
       competitorsCount,
       unitPrice: race.inscriptionPrice,
     });
-  }, [competitorsCount, race, registrationType]);
+  }, [bulkSummary?.totalAmount, competitorsCount, race, registrationType]);
 
   const appendAgentMessage = useCallback((message: Omit<ChatMessage, 'id' | 'role' | 'createdAt'>): void => {
     setMessages((current) => [...current, { ...message, id: messageId(), role: 'agent', createdAt: now() }]);
@@ -235,6 +235,15 @@ export function useAgentConversation() {
     });
   }
 
+  function retryPaymentUpload(): void {
+    setRegistrationReview(null);
+    setState('PAYMENT');
+    appendAgentMessage({
+      text: 'Sube nuevamente el comprobante de pago para volver a validarlo.',
+      uiAction: { type: 'SHOW_PAYMENT' },
+    });
+  }
+
   async function confirmRegistration(): Promise<void> {
     if (!registrationReview) return;
 
@@ -286,5 +295,6 @@ export function useAgentConversation() {
     submitExistingUser,
     submitNewUser,
     validatePayment,
+    retryPaymentUpload,
   };
 }

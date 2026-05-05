@@ -38,6 +38,7 @@ services:
       JWT_SECRET_KEY: change-me-local-secret
       JWT_ALGORITHM: HS256
       JWT_EXPIRE_SECONDS: 3600
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
       ENABLE_CAPTCHA_MOCK: "true"
       GOOGLE_RECAPTCHA_SECRET_KEY: ""
       GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-/app/secrets/google-service-account.json}

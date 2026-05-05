@@ -11,15 +11,16 @@
 | Campo | Valor |
 |-------|-------|
 | **Nombre del Proyecto** | *CicloAI* |
+| **Sitio Web del Proyecto** | https://cicloai-frontend-674379443086.us-central1.run.app/
 | **Participante(s)** | *Jose Miguel Lanza Caceres* |
 | **Instructor** | *Andres Rojas* |
 | **Cohorte / Edición** | *2025-2026* |
 | **Fecha de Inicio** | *20/03/2026* |
-| **Fecha de Entrega Final** | *DD/MM/AAAA* |
+| **Fecha de Entrega Final** | *26/04/2026* |
 | **Versión del Documento** | *v0.1.03202026* |
 | **Estado del Proyecto** | * **En Planificación** / En Desarrollo / Completado* |
 | **Repositorio GitHub/GitLab** | *https://github.com/cheyolanza/cicloai* |
-| **Entorno Cloud** | * AWS  |
+| **Entorno Cloud** | * Google Cloud  |
 | **Stack Tecnológico Principal** | Python, Docker, FastAPI |
 
 ---

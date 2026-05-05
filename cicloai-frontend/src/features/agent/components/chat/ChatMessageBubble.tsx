@@ -28,6 +28,7 @@ interface ChatMessageBubbleProps {
   onNewUserSubmit: (registration: NewUserRegistration) => void;
   onPaymentValidated: (proof: File) => void;
   onRegistrationConfirm: () => void;
+  onPaymentRetry: () => void;
 }
 
 /** Single chat bubble with optional rich action content. */
@@ -45,6 +46,7 @@ export function ChatMessageBubble({
   onNewUserSubmit,
   onPaymentValidated,
   onRegistrationConfirm,
+  onPaymentRetry,
 }: ChatMessageBubbleProps) {
   const isUser = message.role === 'user';
 
@@ -91,6 +93,7 @@ export function ChatMessageBubble({
               onNewUserSubmit={onNewUserSubmit}
               onPaymentValidated={onPaymentValidated}
               onRegistrationConfirm={onRegistrationConfirm}
+              onPaymentRetry={onPaymentRetry}
             />
           ) : null}
         </Paper>

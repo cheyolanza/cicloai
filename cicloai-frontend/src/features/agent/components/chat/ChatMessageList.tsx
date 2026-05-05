@@ -27,6 +27,7 @@ interface ChatMessageListProps {
   onNewUserSubmit: (registration: NewUserRegistration) => void;
   onPaymentValidated: (proof: File) => void;
   onRegistrationConfirm: () => void;
+  onPaymentRetry: () => void;
 }
 
 /**
@@ -46,11 +47,11 @@ export function ChatMessageList(props: ChatMessageListProps) {
       props.messages.length,
       lastMessage?.id ?? '',
       lastMessage?.uiAction?.type ?? '',
-	      props.registrationReview?.reviewToken ?? '',
-	      props.confirmationLoading ? 'confirming' : 'idle',
-	      props.isAgentTyping ? 'typing' : 'idle',
-	    ].join(':');
-	  }, [props.confirmationLoading, props.isAgentTyping, props.messages, props.registrationReview?.reviewToken]);
+      props.registrationReview?.reviewToken ?? '',
+      props.confirmationLoading ? 'confirming' : 'idle',
+      props.isAgentTyping ? 'typing' : 'idle',
+    ].join(':');
+  }, [props.confirmationLoading, props.isAgentTyping, props.messages, props.registrationReview?.reviewToken]);
 
   function scrollToLatestMessage(behavior: ScrollBehavior = 'smooth'): void {
     window.requestAnimationFrame(() => {
@@ -74,18 +75,18 @@ export function ChatMessageList(props: ChatMessageListProps) {
     return () => observer.disconnect();
   }, []);
 
-	return (
-	    <Box ref={scrollContainerRef} sx={{ flex: 1, overflowY: 'auto', px: { xs: 1.5, md: 3 }, py: 2 }}>
-	      <Stack ref={messageStackRef} spacing={2}>
-	        {props.messages.map((message) => (
-	          <ChatMessageBubble key={message.id} {...props} message={message} />
-	        ))}
-	        {props.isAgentTyping ? <AgentTypingIndicator /> : null}
-	        <Box ref={endOfMessagesRef} aria-hidden="true" sx={{ height: 1 }} />
-	      </Stack>
-	    </Box>
-	  );
-	}
+  return (
+    <Box ref={scrollContainerRef} sx={{ flex: 1, overflowY: 'auto', px: { xs: 1.5, md: 3 }, py: 2 }}>
+      <Stack ref={messageStackRef} spacing={2}>
+        {props.messages.map((message) => (
+          <ChatMessageBubble key={message.id} {...props} message={message} />
+        ))}
+        {props.isAgentTyping ? <AgentTypingIndicator /> : null}
+        <Box ref={endOfMessagesRef} aria-hidden="true" sx={{ height: 1 }} />
+      </Stack>
+    </Box>
+  );
+}
 
 function AgentTypingIndicator() {
   return (

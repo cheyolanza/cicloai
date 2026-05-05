@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Autocomplete, Button, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Autocomplete, Box, Button, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import type { NewUserRegistration } from '@/features/agent/types/registration';
 import { bikeTeamService } from '@/features/race/services/bikeTeamService';
@@ -21,6 +22,7 @@ const dniExtensions = [
 ] as const;
 
 const cyclistCategories = ['CICLOTURISTA', 'AFICIONADO', 'FEDERADO'] as const;
+const totalSteps = 4;
 
 interface NewUserRegistrationCardProps {
   onSubmit: (registration: NewUserRegistration) => void;
@@ -46,6 +48,7 @@ export function NewUserRegistrationCard({ onSubmit }: NewUserRegistrationCardPro
   const [selectedTeam, setSelectedTeam] = useState<BikeTeam | null>(null);
   const [loadingTeams, setLoadingTeams] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState(0);
 
   useEffect(() => {
     bikeTeamService
@@ -67,116 +70,182 @@ export function NewUserRegistrationCard({ onSubmit }: NewUserRegistrationCardPro
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  function submit(): void {
-    if (!dniHasValidFormat) {
-      setError('El DNI debe contener exactamente 7 digitos.');
-      return;
-    }
-
-    if (!emailHasValidFormat) {
-      setError('Ingresa un email válido para enviar la confirmación de inscripción.');
-      return;
-    }
-
-    if (!form.fullName.trim() || !form.birthDate || !form.gender || !form.category || !form.team.trim()) {
-      setError('Completa nombre, email, fecha de nacimiento, género, categoria y equipo para continuar.');
-      return;
-    }
-
+  function validateStep(currentStep: number): boolean {
     setError(null);
+    if (currentStep === 0 && !dniHasValidFormat) {
+      setError('El DNI debe contener exactamente 7 digitos.');
+      return false;
+    }
+    if (currentStep === 1) {
+      if (!form.fullName.trim()) {
+        setError('Ingresa el nombre del participante.');
+        return false;
+      }
+      if (!emailHasValidFormat) {
+        setError('Ingresa un email válido para enviar la confirmación de inscripción.');
+        return false;
+      }
+    }
+    if (currentStep === 2 && (!form.birthDate || !form.gender)) {
+      setError('Completa fecha de nacimiento y género para continuar.');
+      return false;
+    }
+    if (currentStep === 3 && (!form.category || !form.team.trim())) {
+      setError('Selecciona el tipo de categoría y el equipo de ciclismo para continuar.');
+      return false;
+    }
+    return true;
+  }
+
+  function nextStep(): void {
+    if (!validateStep(step)) {
+      return;
+    }
+    setStep((current) => Math.min(current + 1, totalSteps - 1));
+  }
+
+  function previousStep(): void {
+    setError(null);
+    setStep((current) => Math.max(current - 1, 0));
+  }
+
+  function submit(): void {
+    if (!validateStep(step)) {
+      return;
+    }
     onSubmit(form);
   }
 
   return (
-    <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: 'background.paper' }}>
-      <Stack spacing={2}>
-        <Typography variant="h3">Datos del ciclista</Typography>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-          <TextField
-            fullWidth
-            label="DNI"
-            value={form.dni}
-            inputProps={{ inputMode: 'numeric', maxLength: 7, pattern: '[0-9]{7}' }}
-            error={Boolean(form.dni) && !dniHasValidFormat}
-            helperText={Boolean(form.dni) && !dniHasValidFormat ? 'Debe tener exactamente 7 digitos.' : ' '}
-            onChange={(event) => updateField('dni', event.target.value.replace(/\D/g, '').slice(0, 7))}
-            required
-          />
-          <TextField
-            select
-            label="EXT"
-            value={form.dniExtension}
-            onChange={(event) => updateField('dniExtension', event.target.value)}
-            sx={{ minWidth: { xs: '100%', sm: 180 } }}
-            required
-          >
-            {dniExtensions.map((extension) => (
-              <MenuItem key={extension.value} value={extension.value}>
-                {extension.label} ({extension.value})
-              </MenuItem>
-            ))}
-          </TextField>
-        </Stack>
-        <TextField
-          label="Nombre completo"
-          value={form.fullName}
-          onChange={(event) => updateField('fullName', event.target.value)}
-          required
-        />
-        <TextField
-          label="Email del participante"
-          type="email"
-          value={form.email}
-          error={Boolean(form.email) && !emailHasValidFormat}
-          helperText={Boolean(form.email) && !emailHasValidFormat ? 'Ingresa un email válido.' : ' '}
-          onChange={(event) => updateField('email', event.target.value)}
-          required
-        />
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-          <TextField
-            fullWidth
-            label="Fecha de nacimiento"
-            type="date"
-            value={form.birthDate}
-            onChange={(event) => updateField('birthDate', event.target.value)}
-            InputLabelProps={{ shrink: true }}
-            required
-          />
-          <GenderSelectField value={form.gender} onChange={(value) => updateField('gender', value)} required />
-        </Stack>
-        <TextField
-          select
-          label="Categoría"
-          value={form.category}
-          onChange={(event) => updateField('category', event.target.value)}
-          required
-        >
-          {cyclistCategories.map((category) => (
-            <MenuItem key={category} value={category}>
-              {category}
-            </MenuItem>
-          ))}
-        </TextField>
-        <Autocomplete
-          options={teams}
-          value={selectedTeam}
-          loading={loadingTeams}
-          getOptionLabel={(option) => option.name}
-          isOptionEqualToValue={(option, value) => option.id === value.id}
-          onChange={(_, value) => {
-            setSelectedTeam(value);
-            updateField('team', value?.name ?? '');
-          }}
-          renderInput={(params) => (
-            <TextField {...params} label="Equipo de ciclismo / Independiente" required />
-          )}
-        />
+    <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: 'background.paper' }}>
+      <Stack spacing={2} sx={{ minWidth: { xs: 0, sm: 420 } }}>
+        <Box>
+          <Typography variant="h3">Datos del ciclista</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Paso {step + 1} de {totalSteps}
+          </Typography>
+        </Box>
+
+        {step === 0 ? (
+          <Stack spacing={1.5}>
+            <TextField
+              fullWidth
+              label="DNI"
+              value={form.dni}
+              inputProps={{ inputMode: 'numeric', maxLength: 7, pattern: '[0-9]{7}' }}
+              error={Boolean(form.dni) && !dniHasValidFormat}
+              helperText={Boolean(form.dni) && !dniHasValidFormat ? 'Debe tener exactamente 7 digitos.' : ' '}
+              onChange={(event) => updateField('dni', event.target.value.replace(/\D/g, '').slice(0, 7))}
+              required
+            />
+            <TextField
+              select
+              fullWidth
+              label="Extensión"
+              value={form.dniExtension}
+              onChange={(event) => updateField('dniExtension', event.target.value)}
+              required
+            >
+              {dniExtensions.map((extension) => (
+                <MenuItem key={extension.value} value={extension.value}>
+                  {extension.label} ({extension.value})
+                </MenuItem>
+              ))}
+            </TextField>
+          </Stack>
+        ) : null}
+
+        {step === 1 ? (
+          <Stack spacing={1.5}>
+            <TextField
+              label="Nombre del participante"
+              value={form.fullName}
+              onChange={(event) => updateField('fullName', event.target.value)}
+              required
+            />
+            <TextField
+              label="Email"
+              type="email"
+              value={form.email}
+              error={Boolean(form.email) && !emailHasValidFormat}
+              helperText={Boolean(form.email) && !emailHasValidFormat ? 'Ingresa un email válido.' : ' '}
+              onChange={(event) => updateField('email', event.target.value)}
+              required
+            />
+          </Stack>
+        ) : null}
+
+        {step === 2 ? (
+          <Stack spacing={1.5}>
+            <TextField
+              fullWidth
+              label="Fecha de nacimiento"
+              type="date"
+              value={form.birthDate}
+              onChange={(event) => updateField('birthDate', event.target.value)}
+              InputLabelProps={{ shrink: true }}
+              required
+            />
+            <GenderSelectField value={form.gender} onChange={(value) => updateField('gender', value)} required />
+          </Stack>
+        ) : null}
+
+        {step === 3 ? (
+          <Stack spacing={1.5}>
+            <TextField
+              select
+              label="Tipo de categoría"
+              value={form.category}
+              onChange={(event) => updateField('category', event.target.value)}
+              required
+            >
+              {cyclistCategories.map((category) => (
+                <MenuItem key={category} value={category}>
+                  {category}
+                </MenuItem>
+              ))}
+            </TextField>
+            <Autocomplete
+              options={teams}
+              value={selectedTeam}
+              loading={loadingTeams}
+              getOptionLabel={(option) => option.name}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              onChange={(_, value) => {
+                setSelectedTeam(value);
+                updateField('team', value?.name ?? '');
+              }}
+              renderInput={(params) => (
+                <TextField {...params} label="Equipo de ciclismo / Independiente" required />
+              )}
+            />
+          </Stack>
+        ) : null}
+
         {error ? (
           isAccessRequiredMessage(error) ? <AccessRequiredAlert message={error} /> : <Alert severity="warning">{error}</Alert>
         ) : null}
-        <Button variant="contained" endIcon={<ArrowForwardIcon />} onClick={submit}>
-          Enviar datos al agente
-        </Button>
+
+        <Stack direction={{ xs: 'column-reverse', sm: 'row' }} spacing={1}>
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={<ArrowBackIcon />}
+            disabled={step === 0}
+            onClick={previousStep}
+          >
+            Atrás
+          </Button>
+          {step < totalSteps - 1 ? (
+            <Button fullWidth variant="contained" endIcon={<ArrowForwardIcon />} onClick={nextStep}>
+              Siguiente
+            </Button>
+          ) : (
+            <Button fullWidth variant="contained" endIcon={<ArrowForwardIcon />} onClick={submit}>
+              Enviar Datos al Agente
+            </Button>
+          )}
+        </Stack>
       </Stack>
     </Paper>
   );

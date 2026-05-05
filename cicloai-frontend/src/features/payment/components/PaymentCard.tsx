@@ -131,6 +131,7 @@ export function PaymentCard({ amount, currency, qrImage, onValidated }: PaymentC
             <FileInputButton
               label={proof?.name ?? 'Subir comprobante de pago'}
               accept="image/png,image/jpeg,image/webp"
+              disabled={loading || paymentStatus === 'uploading' || paymentStatus === 'approved'}
               onChange={setProof}
             />
             {paymentStatus === 'approved' ? (
@@ -143,7 +144,12 @@ export function PaymentCard({ amount, currency, qrImage, onValidated }: PaymentC
                 {paymentPrompt}
               </Alert>
             ) : null}
-            <Button variant="contained" startIcon={<VerifiedIcon />} disabled={loading || paymentStatus === 'uploading'} onClick={validatePayment}>
+            <Button
+              variant="contained"
+              startIcon={<VerifiedIcon />}
+              disabled={loading || paymentStatus === 'uploading' || paymentStatus === 'approved'}
+              onClick={validatePayment}
+            >
               {paymentStatus === 'uploading' || loading ? 'Validando...' : 'Validar pago'}
             </Button>
           </>
