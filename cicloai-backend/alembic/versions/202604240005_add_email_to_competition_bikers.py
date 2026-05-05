@@ -21,7 +21,12 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.add_column(
         "competition_bikers",
-        sa.Column("email", sa.String(length=254), nullable=False, server_default="pending-email@cicloai.local"),
+        sa.Column(
+            "email",
+            sa.String(length=254),
+            nullable=False,
+            server_default="pending-email@cicloai.local",
+        ),
     )
     op.alter_column("competition_bikers", "email", server_default=None)
 

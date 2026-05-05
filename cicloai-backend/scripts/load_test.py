@@ -13,7 +13,9 @@ from pathlib import Path
 
 def post_json(url: str, payload: dict, timeout: float = 5.0) -> tuple[int, float]:
     data = json.dumps(payload).encode("utf-8")
-    request = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST")
+    request = urllib.request.Request(
+        url, data=data, headers={"Content-Type": "application/json"}, method="POST"
+    )
     started_at = time.perf_counter()
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
@@ -33,7 +35,9 @@ def percentile(values: list[float], percentage: float) -> float:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Simple load test for CicloAI /query endpoint.")
+    parser = argparse.ArgumentParser(
+        description="Simple load test for CicloAI /query endpoint."
+    )
     parser.add_argument("--base-url", default="http://127.0.0.1:8000")
     parser.add_argument("--requests", type=int, default=50)
     parser.add_argument("--concurrency", type=int, default=5)
@@ -50,7 +54,10 @@ def main() -> None:
     results: list[tuple[int, float]] = []
 
     with ThreadPoolExecutor(max_workers=args.concurrency) as executor:
-        futures = [executor.submit(post_json, f"{args.base_url}/query", payload) for _ in range(args.requests)]
+        futures = [
+            executor.submit(post_json, f"{args.base_url}/query", payload)
+            for _ in range(args.requests)
+        ]
         for future in as_completed(futures):
             results.append(future.result())
 
@@ -70,8 +77,12 @@ def main() -> None:
 
     reports_dir = Path("reports")
     reports_dir.mkdir(exist_ok=True)
-    (reports_dir / "load_test.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
-    (reports_dir / "load_test.md").write_text(render_markdown(summary), encoding="utf-8")
+    (reports_dir / "load_test.json").write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    (reports_dir / "load_test.md").write_text(
+        render_markdown(summary), encoding="utf-8"
+    )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
 
@@ -95,4 +106,3 @@ def render_markdown(summary: dict) -> str:
 
 if __name__ == "__main__":
     main()
-

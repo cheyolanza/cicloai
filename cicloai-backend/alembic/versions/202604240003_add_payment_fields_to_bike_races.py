@@ -19,9 +19,19 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column("bike_races", sa.Column("race_cost", sa.Integer(), nullable=False, server_default="60"))
-    op.add_column("bike_races", sa.Column("currency", sa.String(length=3), nullable=False, server_default="BOB"))
-    op.add_column("bike_races", sa.Column("payment_qr_image", sa.LargeBinary(), nullable=True))
+    op.add_column(
+        "bike_races",
+        sa.Column("race_cost", sa.Integer(), nullable=False, server_default="60"),
+    )
+    op.add_column(
+        "bike_races",
+        sa.Column(
+            "currency", sa.String(length=3), nullable=False, server_default="BOB"
+        ),
+    )
+    op.add_column(
+        "bike_races", sa.Column("payment_qr_image", sa.LargeBinary(), nullable=True)
+    )
     op.alter_column("bike_races", "race_cost", server_default=None)
     op.alter_column("bike_races", "currency", server_default=None)
 

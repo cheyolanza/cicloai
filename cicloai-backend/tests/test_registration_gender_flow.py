@@ -1,8 +1,18 @@
 from datetime import date
-from pathlib import Path
 from unittest.mock import Mock
+from uuid import uuid4
 
-from cicloai.application.registration_service import BulkExcelService, CategoryRulesService
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from cicloai.application.registration_service import (
+    BulkExcelService,
+    RegistrationService,
+)
+from cicloai.infrastructure.database.base import Base
+from cicloai.infrastructure.models.bike_race import BikeRace, BikeRaceStatus
+from cicloai.infrastructure.models.bike_race_category import BikeRaceCategory
+from cicloai.infrastructure.models.category import Category
 
 
 def test_bulk_excel_service_parses_gender_column() -> None:
@@ -21,20 +31,51 @@ def test_bulk_excel_service_parses_gender_column() -> None:
     assert competitors[0].requested_category == "Federado"
 
 
-def test_category_rules_service_passes_gender_to_detector() -> None:
-    detector = Mock()
-    detector.detect_category.return_value = "Master A2"
-    service = CategoryRulesService(Path("convocatoria.txt"), detector)
-    race = Mock(date_of_race=date(2026, 4, 26))
+def test_registration_service_resolves_category_from_database_rules() -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    session = sessionmaker(bind=engine)()
+    try:
+        race = BikeRace(
+            name="Carrera Test",
+            location_name="Cotoca",
+            year=2026,
+            date_of_race=date(2026, 4, 26),
+            status=BikeRaceStatus.ACTIVE.value,
+            race_cost=60,
+            cost=60,
+            currency="BOB",
+        )
+        category = Category(
+            name="Federados Master A2",
+            category_type="Federado",
+            sex="damas",
+            age_from=35,
+            age_to=39,
+            born_from=1990,
+            born_to=1986,
+            status="active",
+        )
+        session.add_all([race, category])
+        session.flush()
+        category_id = category.id
+        session.add(
+            BikeRaceCategory(id=uuid4(), race_id=race.id, category_id=category_id)
+        )
+        session.commit()
 
-    result = service.validate(
-        birth_date=date(1990, 1, 10),
-        requested_category="FEDERADO",
-        gender="Femenino",
-        race=race,
-    )
+        service = RegistrationService(session, Mock(), Mock())
 
-    detector.detect_category.assert_called_once()
-    assert detector.detect_category.call_args.kwargs["gender"] == "Femenino"
+        result = service._resolve_category(
+            birth_date=date(1990, 1, 10),
+            requested_category="FEDERADO",
+            gender="Femenino",
+            race=race,
+        )
+    finally:
+        session.close()
+        Base.metadata.drop_all(engine)
+
     assert result.valid is True
-    assert result.detected_category == "Master A2"
+    assert result.category_id == category_id
+    assert result.detected_category == "Federados Master A2"

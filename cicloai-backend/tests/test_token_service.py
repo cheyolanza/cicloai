@@ -8,11 +8,17 @@ from cicloai.application.token_service import TokenService
 from cicloai.infrastructure.config import Settings
 
 
-def build_settings(*, secret: str = "unit-test-secret", expires_in: int = 3600) -> Settings:
-    return Settings(jwt_secret_key=secret, jwt_algorithm="HS256", jwt_expire_seconds=expires_in)
+def build_settings(
+    *, secret: str = "unit-test-secret", expires_in: int = 3600
+) -> Settings:
+    return Settings(
+        jwt_secret_key=secret, jwt_algorithm="HS256", jwt_expire_seconds=expires_in
+    )
 
 
-def build_service(*, secret: str = "unit-test-secret", expires_in: int = 3600) -> TokenService:
+def build_service(
+    *, secret: str = "unit-test-secret", expires_in: int = 3600
+) -> TokenService:
     return TokenService(build_settings(secret=secret, expires_in=expires_in))
 
 
@@ -29,6 +35,19 @@ def test_create_public_user_token_returns_bearer_token_and_expiration() -> None:
     assert expires_in == 900
     assert payload["sub"] == "captcha_validated_user"
     assert payload["scope"] == "public_user"
+    assert payload["token_type"] == "bearer"
+    assert payload["exp"] - payload["iat"] == 900
+
+
+def test_create_admin_user_token_returns_bearer_token_and_expiration() -> None:
+    service = build_service(expires_in=900)
+
+    token, expires_in = service.create_admin_user_token("admin")
+    payload = service.decode_admin_user_token(token)
+
+    assert expires_in == 900
+    assert payload["sub"] == "admin"
+    assert payload["scope"] == "admin_user"
     assert payload["token_type"] == "bearer"
     assert payload["exp"] - payload["iat"] == 900
 
@@ -78,6 +97,14 @@ def test_decode_public_user_token_rejects_invalid_claims(claims_override: dict) 
 
     with pytest.raises(InvalidTokenError, match="Invalid token claims"):
         service.decode_public_user_token(encode_payload(payload))
+
+
+def test_decode_admin_user_token_rejects_public_token() -> None:
+    service = build_service()
+    public_token, _expires_in = service.create_public_user_token()
+
+    with pytest.raises(InvalidTokenError, match="Invalid token claims"):
+        service.decode_admin_user_token(public_token)
 
 
 def test_decode_public_user_token_rejects_wrong_signature() -> None:
@@ -146,7 +173,9 @@ def test_decode_registration_review_token_rejects_missing_review_payload() -> No
 
 
 @pytest.mark.parametrize("review_value", [None, "not-a-dict", ["list"]])
-def test_decode_registration_review_token_rejects_non_dict_review_payload(review_value) -> None:
+def test_decode_registration_review_token_rejects_non_dict_review_payload(
+    review_value,
+) -> None:
     service = build_service()
     now = datetime.now(timezone.utc)
     token = encode_payload(

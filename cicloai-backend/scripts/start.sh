@@ -19,4 +19,5 @@ else
 fi
 
 echo "[startup] Starting FastAPI with Uvicorn"
-exec uvicorn cicloai.interfaces.api.main:app --host 0.0.0.0 --port "${PORT:-8000}"
+log_level="$(printf '%s' "${LOG_LEVEL:-info}" | tr '[:upper:]' '[:lower:]')"
+exec uvicorn cicloai.interfaces.api.main:app --host 0.0.0.0 --port "${PORT:-8000}" --log-level "$log_level"

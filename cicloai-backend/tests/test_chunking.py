@@ -19,4 +19,3 @@ def test_chunker_ignores_blank_text() -> None:
     chunks = chunker.split(Document(document_id="doc_blank", text="   "))
 
     assert chunks == []
-

@@ -54,7 +54,9 @@ def collect_images(input_dir: Path) -> list[Path]:
         raise FileNotFoundError(f"Input directory not found: {input_dir}")
 
     return sorted(
-        path for path in input_dir.iterdir() if path.is_file() and path.suffix.lower() in SUPPORTED_EXTENSIONS
+        path
+        for path in input_dir.iterdir()
+        if path.is_file() and path.suffix.lower() in SUPPORTED_EXTENSIONS
     )
 
 
@@ -214,10 +216,22 @@ def print_results(results: Iterable[PaymentAnalysis]) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Analyze QR payment receipts from images with tesseract-ocr.")
-    parser.add_argument("--input-dir", default="tmp/images", help="Directory containing payment receipt images.")
-    parser.add_argument("--lang", default="spa", help="Tesseract language pack. Example: spa or spa+eng.")
-    parser.add_argument("--psm", type=int, default=6, help="Tesseract page segmentation mode.")
+    parser = argparse.ArgumentParser(
+        description="Analyze QR payment receipts from images with tesseract-ocr."
+    )
+    parser.add_argument(
+        "--input-dir",
+        default="tmp/images",
+        help="Directory containing payment receipt images.",
+    )
+    parser.add_argument(
+        "--lang",
+        default="spa",
+        help="Tesseract language pack. Example: spa or spa+eng.",
+    )
+    parser.add_argument(
+        "--psm", type=int, default=6, help="Tesseract page segmentation mode."
+    )
     parser.add_argument("--oem", type=int, default=3, help="Tesseract OCR engine mode.")
     return parser.parse_args()
 
@@ -234,7 +248,9 @@ def main() -> None:
 
     for image_path in image_files:
         try:
-            raw_text = run_tesseract(image_path, lang=args.lang, psm=args.psm, oem=args.oem)
+            raw_text = run_tesseract(
+                image_path, lang=args.lang, psm=args.psm, oem=args.oem
+            )
             results.append(analyze_text(image_path.name, raw_text))
         except Exception as exc:
             results.append(

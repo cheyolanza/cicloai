@@ -11,7 +11,9 @@ from cicloai.application.category_detection_service import (
 from cicloai.rag.category_rules_rag_service import CategoryDetectionPromptData
 
 
-def build_service(rag_response: str | None = "Master A1") -> tuple[CategoryDetectionService, Mock]:
+def build_service(
+    rag_response: str | None = "Master A1",
+) -> tuple[CategoryDetectionService, Mock]:
     rag_mock = Mock()
     rag_mock.detect_category.return_value = rag_response
     return CategoryDetectionService(rag_service=rag_mock), rag_mock
@@ -76,7 +78,9 @@ def test_detect_category_returns_no_determinada_for_future_birth_date() -> None:
         ("Aficionados o Novatos 2", "Aficionados o Novatos 2"),
     ],
 )
-def test_detect_category_accepts_allowed_categories(raw_response: str, expected: str) -> None:
+def test_detect_category_accepts_allowed_categories(
+    raw_response: str, expected: str
+) -> None:
     service, _rag_mock = build_service(raw_response)
 
     result = service.detect_category(
@@ -119,16 +123,27 @@ def test_detect_category_normalizes_federado_prefixed_response() -> None:
         ("Federados Master C (Damas): 50 años y más", "Federado Master C"),
         ("Federados Master D1 (Varones): 60-64 años", "Federado Master D1"),
         ("Federados Master D2 (Varones): 65-69 años", "Federado Master D2"),
-        ("Aficionados o Novatos 1 (Varones y Damas): 16-29 años", "Aficionados o Novatos 1"),
-        ("Aficionados o Novatos 2 (Varones y Damas): 30-39 años", "Aficionados o Novatos 2"),
+        (
+            "Aficionados o Novatos 1 (Varones y Damas): 16-29 años",
+            "Aficionados o Novatos 1",
+        ),
+        (
+            "Aficionados o Novatos 2 (Varones y Damas): 30-39 años",
+            "Aficionados o Novatos 2",
+        ),
         ("Aficionados o Novatos 3 (Varones y Damas)", "Aficionados o Novatos 3"),
-        ("Aficionados o Novatos 3 (Varones y Damas): 40-49 años", "Aficionados o Novatos 3"),
+        (
+            "Aficionados o Novatos 3 (Varones y Damas): 40-49 años",
+            "Aficionados o Novatos 3",
+        ),
         ("Aficionados o Novatos 4 (Varones): 50 años y más", "Aficionados o Novatos 4"),
         ("Cicloturista Varones: 18 años en adelante", "Cicloturista Varones"),
         ("Cicloturista Damas: 18 años en adelante", "Cicloturista Damas"),
     ],
 )
-def test_detect_category_accepts_convocatoria_full_labels(raw_response: str, expected: str) -> None:
+def test_detect_category_accepts_convocatoria_full_labels(
+    raw_response: str, expected: str
+) -> None:
     service, _rag_mock = build_service(raw_response)
 
     result = service.detect_category(
@@ -154,7 +169,9 @@ def test_detect_category_accepts_convocatoria_full_labels(raw_response: str, exp
         "texto demasiado largo para ser solo una categoría válida",
     ],
 )
-def test_detect_category_rejects_invalid_or_explanatory_answers(raw_response: str | None) -> None:
+def test_detect_category_rejects_invalid_or_explanatory_answers(
+    raw_response: str | None,
+) -> None:
     service, _rag_mock = build_service(raw_response)
 
     result = service.detect_category(
@@ -171,18 +188,24 @@ def test_detect_category_rejects_invalid_or_explanatory_answers(raw_response: st
 def test_clean_category_keeps_allowed_categories(category: str) -> None:
     service, _rag_mock = build_service(category)
 
-    assert service.detect_category(
-        birth_date=date(1992, 5, 10),
-        declared_category="FEDERADO",
-        date_of_race=date(2026, 4, 26),
-    ) == category
+    assert (
+        service.detect_category(
+            birth_date=date(1992, 5, 10),
+            declared_category="FEDERADO",
+            date_of_race=date(2026, 4, 26),
+        )
+        == category
+    )
 
 
 def test_clean_category_rejects_categories_not_in_allow_list() -> None:
     service, _rag_mock = build_service("Master Z9")
 
-    assert service.detect_category(
-        birth_date=date(1992, 5, 10),
-        declared_category="FEDERADO",
-        date_of_race=date(2026, 4, 26),
-    ) == NO_DETERMINADA
+    assert (
+        service.detect_category(
+            birth_date=date(1992, 5, 10),
+            declared_category="FEDERADO",
+            date_of_race=date(2026, 4, 26),
+        )
+        == NO_DETERMINADA
+    )

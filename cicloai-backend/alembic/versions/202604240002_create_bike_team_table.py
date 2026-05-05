@@ -22,15 +22,27 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.create_table(
         "bike_team",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False),
+        sa.Column(
+            "id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False
+        ),
         sa.Column("name", sa.String(length=100), nullable=False),
         sa.Column("active", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("manager_name", sa.String(length=120), nullable=True),
         sa.Column("contact_phone", sa.String(length=40), nullable=True),
         sa.Column("facebook_page", sa.String(length=255), nullable=True),
         sa.Column("picture_url", sa.String(length=500), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
     )
     op.create_index("ix_bike_team_active", "bike_team", ["active"])
     op.create_index("ix_bike_team_name", "bike_team", ["name"])

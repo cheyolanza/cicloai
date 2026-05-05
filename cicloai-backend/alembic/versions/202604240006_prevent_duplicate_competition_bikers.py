@@ -33,5 +33,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index("uq_competition_bikers_race_full_name_upper", table_name="competition_bikers")
-    op.drop_constraint("uq_competition_bikers_race_dni", "competition_bikers", type_="unique")
+    op.drop_index(
+        "uq_competition_bikers_race_full_name_upper", table_name="competition_bikers"
+    )
+    op.drop_constraint(
+        "uq_competition_bikers_race_dni", "competition_bikers", type_="unique"
+    )

@@ -43,7 +43,9 @@ def test_extract_payment_data_from_spanish_text_date_and_nro_transaction():
 def test_extract_payment_data_returns_none_for_missing_required_values():
     service = PaymentValidationService(Mock())
 
-    result = service.extract_payment_data("Comprobante borroso sin valores estructurados")
+    result = service.extract_payment_data(
+        "Comprobante borroso sin valores estructurados"
+    )
 
     assert result.amount is None
     assert result.id_transaction is None

@@ -22,7 +22,9 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.create_table(
         "competition_bikers",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False),
+        sa.Column(
+            "id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False
+        ),
         sa.Column("race_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("full_name", sa.String(length=150), nullable=False),
         sa.Column("dni", sa.String(length=7), nullable=False),
@@ -34,10 +36,25 @@ def upgrade() -> None:
         sa.Column("payment_status", sa.String(length=30), nullable=False),
         sa.Column("payment_reference", sa.String(length=80), nullable=False),
         sa.Column("status", sa.String(length=30), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.ForeignKeyConstraint(["race_id"], ["bike_races.id"], ondelete="RESTRICT"),
-        sa.UniqueConstraint("race_id", "dni", "dni_extension", name="uq_competition_bikers_race_identity"),
+        sa.UniqueConstraint(
+            "race_id",
+            "dni",
+            "dni_extension",
+            name="uq_competition_bikers_race_identity",
+        ),
     )
     op.create_index("ix_competition_bikers_dni", "competition_bikers", ["dni"])
     op.create_index("ix_competition_bikers_race_id", "competition_bikers", ["race_id"])
